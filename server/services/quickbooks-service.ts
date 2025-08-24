@@ -216,36 +216,46 @@ export class QuickBooksService {
   // Refresh access token using Intuit OAuth Client
   async refreshAccessToken(refreshToken: string): Promise<QuickBooksTokens> {
     try {
-      // Create a new OAuth client for token refresh
+      console.log('🔄 Starting token refresh process...');
+      
+      // Create a new OAuth client specifically for token refresh
       const refreshClient = new OAuthClient({
         clientId: this.clientId,
         clientSecret: this.clientSecret,
         environment: this.environment,
         redirectUri: process.env.QBO_REDIRECT_URI || 'https://www.wemakemarin.com/quickbooks/callback'
       });
+
+      console.log('🔄 Calling refreshUsingToken with refresh token...');
       
-      // Use the refresh token directly by setting the token property
-      (refreshClient as any).token = {
-        refresh_token: refreshToken,
-      };
+      // Use the proper refreshUsingToken method instead of refresh()
+      const authResponse = await refreshClient.refreshUsingToken(refreshToken);
       
-      const authResponse = await refreshClient.refresh();
+      console.log('✅ Token refresh response received');
       
-      if (!authResponse.token) {
-        throw new Error('No refreshed token received from QuickBooks');
+      if (!authResponse || !authResponse.getToken()) {
+        throw new Error('No token data received from QuickBooks refresh');
       }
 
+      const tokenData = authResponse.getToken();
+      console.log('📄 Token data extracted successfully');
+
       return {
-        access_token: authResponse.token.access_token,
-        refresh_token: authResponse.token.refresh_token,
-        token_type: authResponse.token.token_type || 'Bearer',
-        expires_in: authResponse.token.expires_in || 3600,
-        scope: authResponse.token.scope || 'com.intuit.quickbooks.accounting',
-        realmId: authResponse.token.realmId || ''
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token || refreshToken, // Keep original if not provided
+        token_type: tokenData.token_type || 'Bearer',
+        expires_in: tokenData.expires_in || 3600,
+        scope: tokenData.scope || 'com.intuit.quickbooks.accounting',
+        realmId: tokenData.realmId || ''
       };
     } catch (error: any) {
-      console.error('Error refreshing token:', error.authResponse || error.message);
-      throw new Error('Failed to refresh access token');
+      console.error('❌ Token refresh failed:', {
+        message: error.message,
+        authResponse: error.authResponse,
+        intuit_tid: error.intuit_tid,
+        originalError: error
+      });
+      throw new Error(`Token refresh failed: ${error.message}`);
     }
   }
 

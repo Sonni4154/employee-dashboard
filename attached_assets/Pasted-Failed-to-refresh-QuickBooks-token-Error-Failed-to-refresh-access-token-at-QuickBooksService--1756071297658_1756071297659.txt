@@ -1,0 +1,21 @@
+Failed to refresh QuickBooks token: Error: Failed to refresh access token
+    at QuickBooksService.refreshAccessToken (/home/runner/workspace/server/services/quickbooks-service.ts:248:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async QuickBooksService.getValidAccessToken (/home/runner/workspace/server/services/quickbooks-service.ts:349:35)
+    at async Timeout.checkAndRefreshTokens (/home/runner/workspace/server/services/sync-scheduler.ts:452:13)
+❌ Token refresh failed for user dev_user_123: Error: QuickBooks token expired and refresh failed
+    at QuickBooksService.getValidAccessToken (/home/runner/workspace/server/services/quickbooks-service.ts:365:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Timeout.checkAndRefreshTokens (/home/runner/workspace/server/services/sync-scheduler.ts:452:13)
+Token validation failed, attempting refresh...
+Error refreshing token: this.token.refreshToken is not a function
+Failed to refresh QuickBooks token: Error: Failed to refresh access token
+    at QuickBooksService.refreshAccessToken (/home/runner/workspace/server/services/quickbooks-service.ts:248:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async QuickBooksService.getValidAccessToken (/home/runner/workspace/server/services/quickbooks-service.ts:349:35)
+    at async Timeout.checkAndRefreshTokens (/home/runner/workspace/server/services/sync-scheduler.ts:452:13)
+❌ Token refresh failed for user dev_user_123: Error: QuickBooks token expired and refresh failed
+    at QuickBooksService.getValidAccessToken (/home/runner/workspace/server/services/quickbooks-service.ts:365:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Timeout.checkAndRefreshTokens (/home/runner/workspace/server/services/sync-scheduler.ts:452:13)
+9:34:12 PM [express] GET /api/calendar/events 304 in 2ms :: []

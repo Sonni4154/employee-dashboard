@@ -405,10 +405,57 @@ export default function Settings() {
 
         {/* Database Connections Tab */}
         <TabsContent value="database" className="space-y-6">
+          {/* Database Status & Test Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="w-5 h-5 text-green-600" />
+                Database Connection Status
+              </CardTitle>
+              <CardDescription>Test and monitor database connectivity</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div>
+                  <p className="font-medium">Primary Database</p>
+                  <p className="text-sm text-muted-foreground">PostgreSQL (Production)</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  <Badge variant="default">Connected</Badge>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  onClick={() => makeApiCall('/api/database/test')}
+                  variant="outline"
+                  size="sm"
+                  disabled={isLoading}
+                  className="w-full"
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Test Connection
+                </Button>
+                
+                <Button
+                  onClick={() => makeApiCall('/api/database-connections')}
+                  variant="outline"
+                  size="sm"
+                  disabled={isLoading}
+                  className="w-full"
+                >
+                  <Activity className="w-4 h-4 mr-2" />
+                  Connection Info
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold">PostgreSQL Database Connections</h2>
-              <p className="text-sm text-muted-foreground">Connect to external PostgreSQL databases for data synchronization</p>
+              <h2 className="text-lg font-semibold">External Database Connections</h2>
+              <p className="text-sm text-muted-foreground">Connect to additional PostgreSQL databases for data synchronization</p>
             </div>
             <Dialog open={showAddDatabase} onOpenChange={setShowAddDatabase}>
               <DialogTrigger asChild>

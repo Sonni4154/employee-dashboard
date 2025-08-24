@@ -913,6 +913,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // QuickBooks test connection endpoint
+  app.get('/api/quickbooks/test', async (req: any, res) => {
+    try {
+      const userId = getUserId(req) || 'dev_user_123';
+      const testResult = await quickbooksService.testConnection(userId);
+      res.json({ 
+        status: 'success',
+        message: 'QuickBooks connection test successful',
+        ...testResult,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('QuickBooks connection test failed:', error);
+      res.status(500).json({ 
+        status: 'error',
+        message: 'QuickBooks connection test failed',
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // QuickBooks refresh token endpoint
+  app.post('/api/quickbooks/refresh', async (req: any, res) => {
+    try {
+      const userId = getUserId(req) || 'dev_user_123';
+      const integration = await storage.getIntegration(userId, 'quickbooks');
+      
+      if (!integration?.refreshToken) {
+        return res.status(400).json({ 
+          status: 'error',
+          message: 'No refresh token available - re-authorization required'
+        });
+      }
+
+      const refreshedTokens = await quickbooksService.refreshAccessToken(integration.refreshToken);
+      
+      // Update stored tokens
+      await storage.upsertIntegration({
+        userId,
+        provider: 'quickbooks',
+        accessToken: refreshedTokens.access_token,
+        refreshToken: refreshedTokens.refresh_token,
+        realmId: integration.realmId || refreshedTokens.realmId,
+        isActive: true,
+        lastSyncAt: new Date()
+      });
+
+      res.json({ 
+        status: 'success',
+        message: 'Tokens refreshed successfully',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('Token refresh failed:', error);
+      res.status(500).json({ 
+        status: 'error',
+        message: 'Token refresh failed - re-authorization may be required',
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   app.get('/quickbooks/connect', (req: any, res) => {
     console.log('🔗 QuickBooks connection initiated');
     const userId = 'dev_user_123';
@@ -2422,6 +2486,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(metrics);
     } catch (error) {
       res.status(500).send('Failed to get Prometheus metrics');
+    }
+  });
+
+  // Database test endpoint
+  app.get('/api/database/test', async (req: any, res) => {
+    try {
+      // Test database connection by running a simple query
+      const testQuery = await storage.getCustomers(10); // Get 10 customers to test connection
+      res.json({ 
+        status: 'success',
+        message: 'Database connection successful',
+        database: 'PostgreSQL',
+        recordCount: testQuery.length,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('Database test failed:', error);
+      res.status(500).json({ 
+        status: 'error',
+        message: 'Database connection failed',
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
     }
   });
 
