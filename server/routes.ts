@@ -2425,6 +2425,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Application Log endpoints
+  app.get('/api/logs/recent', async (req: any, res) => {
+    try {
+      const activityLogs = await storage.getActivityLogs(getUserId(req) || 'dev_user_123', 50);
+      const colorizedLogs = activityLogs.map((log: any) => ({
+        ...log,
+        color: log.type?.includes('error') ? 'red' : 
+               log.type?.includes('success') ? 'green' : 
+               log.type?.includes('warning') ? 'yellow' : 'blue'
+      }));
+      res.json(colorizedLogs);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get recent logs' });
+    }
+  });
+
+  app.get('/api/logs/errors', async (req: any, res) => {
+    try {
+      const activityLogs = await storage.getActivityLogs(getUserId(req) || 'dev_user_123', 100);
+      const errorLogs = activityLogs.filter((log: any) => 
+        log.type?.includes('error') || log.description?.toLowerCase().includes('error')
+      );
+      const colorizedLogs = errorLogs.map((log: any) => ({ ...log, color: 'red' }));
+      res.json(colorizedLogs);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get error logs' });
+    }
+  });
+
+  app.get('/api/logs/quickbooks', async (req: any, res) => {
+    try {
+      const activityLogs = await storage.getActivityLogs(getUserId(req) || 'dev_user_123', 100);
+      const qbLogs = activityLogs.filter((log: any) => 
+        log.type?.includes('quickbooks') || log.description?.toLowerCase().includes('quickbooks')
+      );
+      const colorizedLogs = qbLogs.map((log: any) => ({
+        ...log,
+        color: log.type?.includes('error') ? 'red' : 
+               log.type?.includes('connected') ? 'green' : 'blue'
+      }));
+      res.json(colorizedLogs);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get QuickBooks logs' });
+    }
+  });
+
   // Comprehensive monitoring endpoints
   app.get('/api/monitoring/metrics', async (req, res) => {
     try {

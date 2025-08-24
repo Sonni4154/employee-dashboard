@@ -15,7 +15,6 @@ import HoursAndMaterialsForm from "@/pages/hours-materials-form";
 import Clock from "@/pages/clock";
 import Invoices from "@/pages/invoices";
 import Customers from "@/pages/customers";
-import CustomerSearch from "@/pages/customer-search";
 import EmployeeSchedule from "@/pages/employee-schedule";
 import Products from "@/pages/products";
 import Reports from "@/pages/reports";
@@ -123,9 +122,6 @@ function Router() {
           {() => <ProtectedRoute component={Customers} />}
         </Route>
         
-        <Route path="/customer-search">
-          {() => <ProtectedRoute component={CustomerSearch} />}
-        </Route>
         
         <Route path="/employee-schedule">
           {() => <ProtectedRoute component={EmployeeSchedule} />}

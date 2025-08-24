@@ -113,16 +113,21 @@ export class QuickBooksService {
     try {
       console.log('🔄 Attempting to refresh QuickBooks tokens');
       
-      const tokenResponse = await this.oauthClient.refreshUsingToken(refreshToken);
+      // Set the refresh token in the client
+      (this.oauthClient as any).token = {
+        refresh_token: refreshToken
+      };
+      
+      const tokenResponse = await this.oauthClient.refresh();
       
       console.log('✅ Tokens refreshed successfully');
       return {
-        access_token: tokenResponse.getToken().access_token,
-        refresh_token: tokenResponse.getToken().refresh_token,
-        token_type: tokenResponse.getToken().token_type || 'Bearer',
-        expires_in: tokenResponse.getToken().expires_in || 3600,
-        scope: tokenResponse.getToken().scope || '',
-        realmId: tokenResponse.getToken().realmId || ''
+        access_token: tokenResponse.token.access_token,
+        refresh_token: tokenResponse.token.refresh_token,
+        token_type: tokenResponse.token.token_type || 'Bearer',
+        expires_in: tokenResponse.token.expires_in || 3600,
+        scope: tokenResponse.token.scope || '',
+        realmId: tokenResponse.token.realmId || ''
       };
     } catch (error: any) {
       console.error('❌ Failed to refresh tokens:', error);

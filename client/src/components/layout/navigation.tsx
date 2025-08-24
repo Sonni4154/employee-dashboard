@@ -29,9 +29,7 @@ const employeeNavigationItems = [
   { path: "/clock", label: "Punch Clock", icon: Timer },
   { path: "/marin-job-form", label: "Job Entry Form", icon: FileText },
   { path: "/employee-schedule", label: "My Schedule", icon: Calendar },
-  { path: "/materials", label: "Materials", icon: Package },
   { path: "/customers", label: "Customers", icon: Users },
-  { path: "/customer-search", label: "Customer Search", icon: Search },
   { path: "/products", label: "Products", icon: ShoppingCart },
 ];
 
@@ -43,10 +41,8 @@ const adminNavigationItems = [
       { path: "/", label: "Admin Dashboard", icon: LayoutDashboard },
       { path: "/time-tracking", label: "Time Tracking", icon: Clock },
       { path: "/marin-job-form", label: "Job Entry Form", icon: FileText },
-      { path: "/materials", label: "Materials", icon: Package },
       { path: "/invoices", label: "Invoices", icon: FileText },
       { path: "/customers", label: "Customers", icon: Users },
-      { path: "/customer-search", label: "Customer Search", icon: Search },
       { path: "/products", label: "Products", icon: ShoppingCart },
     ]
   },

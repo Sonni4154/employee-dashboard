@@ -888,6 +888,55 @@ export default function Settings() {
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Logs Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Terminal className="w-5 h-5 text-green-600" />
+                  Application Logs
+                </CardTitle>
+                <CardDescription>View colorized application logs and system messages</CardDescription>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => makeApiCall('/api/activity')}
+                  disabled={isLoading}
+                >
+                  <Activity className="w-4 h-4 mr-2" />
+                  Activity Logs
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => makeApiCall('/api/logs/recent')}
+                  disabled={isLoading}
+                >
+                  <Terminal className="w-4 h-4 mr-2" />
+                  System Logs
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => makeApiCall('/api/logs/errors')}
+                  disabled={isLoading}
+                >
+                  <AlertCircle className="w-4 h-4 mr-2" />
+                  Error Logs
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => makeApiCall('/api/logs/quickbooks')}
+                  disabled={isLoading}
+                >
+                  <SiQuickbooks className="w-4 h-4 mr-2" />
+                  QB Logs
+                </Button>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Quick Actions Section */}
