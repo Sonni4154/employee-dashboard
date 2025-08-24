@@ -366,16 +366,37 @@ export default function Settings() {
               <div className="pt-4 border-t space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <Button
-                    onClick={() => {
-                      const baseUrl = `${window.location.protocol}//${window.location.host}`;
-                      window.location.href = `${baseUrl}/quickbooks/connect`;
+                    onClick={async () => {
+                      try {
+                        setIsLoading(true);
+                        const response = await fetch('/api/integrations/quickbooks/connect');
+                        if (response.ok) {
+                          const data = await response.json();
+                          if (data.authUrl) {
+                            window.location.href = data.authUrl;
+                          } else {
+                            throw new Error('No authorization URL received');
+                          }
+                        } else {
+                          throw new Error('Failed to get authorization URL');
+                        }
+                      } catch (error: any) {
+                        toast({
+                          title: "Authorization Failed",
+                          description: error.message || "Failed to start QuickBooks authorization",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setIsLoading(false);
+                      }
                     }}
                     variant="default"
                     size="sm"
                     className="w-full"
+                    disabled={isLoading}
                   >
                     <SiQuickbooks className="w-4 h-4 mr-2" />
-                    {getIntegrationStatus('quickbooks') === 'Connected' ? 'Re-authorize' : 'Start Authorization'}
+                    {isLoading ? 'Starting...' : (getIntegrationStatus('quickbooks') === 'Connected' ? 'Re-authorize' : 'Start Authorization')}
                   </Button>
                   
                   {getIntegrationStatus('quickbooks') === 'Connected' && (

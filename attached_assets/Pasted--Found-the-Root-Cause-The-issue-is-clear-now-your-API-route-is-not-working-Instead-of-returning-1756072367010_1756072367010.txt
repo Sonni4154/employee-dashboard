@@ -1,0 +1,84 @@
+🚨 Found the Root Cause!The issue is clear now - your API route is not working. Instead of returning JSON with the QuickBooks authorization URL, your server is serving the React frontend HTML page.This means:
+
+Your /api/integrations/quickbooks/connect route is not defined or not working
+Your Express server is serving the React app for all unmatched routes
+QuickBooks OAuth never starts because there's no proper authorization URL
+Immediate Fixes NeededStep 1: Check Your Server Routes
+Your server/routes.ts file is missing the QuickBooks API endpoints. You need to add:typescript// In server/routes.ts or server/index.ts
+app.get('/api/integrations/quickbooks/connect', async (req, res) => {
+  try {
+    const state = Math.random().toString(36).substring(7); // Generate random state
+    const scopes = 'com.intuit.quickbooks.accounting';
+    
+    const authUrl = new URL('https://appcenter.intuit.com/connect/oauth2');
+    authUrl.searchParams.set('client_id', process.env.QBO_CLIENT_ID || '');
+    authUrl.searchParams.set('scope', scopes);
+    authUrl.searchParams.set('redirect_uri', process.env.QBO_REDIRECT_URI || '');
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('state', state);
+
+    // Store state in session for security
+    req.session.qb_state = state;
+
+    res.json({ 
+      authUrl: authUrl.toString(),
+      success: true 
+    });
+  } catch (error) {
+    console.error('QuickBooks connect error:', error);
+    res.status(500).json({ error: 'Failed to generate authorization URL' });
+  }
+});
+
+app.get('/quickbooks/callback', async (req, res) => {
+  try {
+    const { code, realmId, state } = req.query;
+    
+    console.log('QB Callback received:', { code: !!code, realmId, state });
+    
+    if (!code) {
+      return res.redirect('/settings?qb_error=Missing%20authorization%20code');
+    }
+
+    if (!realmId) {
+      return res.redirect('/settings?qb_error=Missing%20realm%20ID');
+    }
+
+    // Verify state (security check)
+    if (state !== req.session.qb_state) {
+      return res.redirect('/settings?qb_error=Invalid%20state%20parameter');
+    }
+
+    // Exchange code for tokens
+    const tokenResponse = await fetch('https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+        'Authorization': `Basic ${Buffer.from(`${process.env.QBO_CLIENT_ID}:${process.env.QBO_CLIENT_SECRET}`).toString('base64')}`
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: code as string,
+        redirect_uri: process.env.QBO_REDIRECT_URI || ''
+      })
+    });
+
+    const tokens = await tokenResponse.json();
+    
+    if (!tokenResponse.ok) {
+      console.error('Token exchange failed:', tokens);
+      return res.redirect('/settings?qb_error=Token%20exchange%20failed');
+    }
+
+    // Store tokens in database
+    // TODO: Save tokens and realmId to your integrations table
+    
+    console.log('QuickBooks connection successful');
+    res.redirect('/settings?qb=connected');
+    
+  } catch (error) {
+    console.error('QuickBooks callback error:', error);
+    res.redirect('/settings?qb_error=Internal%20server%20error');
+  }
+});

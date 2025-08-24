@@ -1084,6 +1084,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API endpoint for QuickBooks connection (returns JSON)
+  app.get('/api/integrations/quickbooks/connect', (req: any, res) => {
+    try {
+      console.log('🔗 QuickBooks API connection requested');
+      const userId = getUserId(req) || 'dev_user_123';
+      
+      // Always use production redirect URI to match QuickBooks app configuration
+      const redirectUri = process.env.QBO_REDIRECT_URI || 'https://www.wemakemarin.com/quickbooks/callback';
+      console.log('🔧 Using redirect URI:', redirectUri);
+      
+      const authUrl = quickbooksService.getAuthorizationUrl(userId, redirectUri);
+      console.log(`📋 Generated QuickBooks OAuth URL: ${authUrl}`);
+      
+      res.json({ 
+        authUrl,
+        success: true,
+        redirectUri,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('Failed to generate QuickBooks authorization URL:', error);
+      res.status(500).json({ 
+        error: 'Failed to generate authorization URL',
+        message: error.message,
+        success: false 
+      });
+    }
+  });
+
+  // Direct redirect endpoint for QuickBooks connection
   app.get('/quickbooks/connect', (req: any, res) => {
     console.log('🔗 QuickBooks connection initiated');
     const userId = 'dev_user_123';
