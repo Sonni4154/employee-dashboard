@@ -58,11 +58,14 @@ export class QuickBooksService {
     this.environment = (process.env.QBO_ENV as 'production' | 'sandbox') || 'production';
     
     // Use QBO_BASE_URL if provided, otherwise use default based on environment
-    this.baseUrl = process.env.QBO_BASE_URL || (
+    let baseUrl = process.env.QBO_BASE_URL || (
       this.environment === 'production' 
         ? 'https://quickbooks.api.intuit.com/v3/company'
         : 'https://sandbox-quickbooks.api.intuit.com/v3/company'
     );
+    
+    // Ensure no trailing slash
+    this.baseUrl = baseUrl.replace(/\/$/, '');
     
     // Always use production redirect URI to match QuickBooks app configuration
     const redirectUri = process.env.QBO_REDIRECT_URI || 'https://www.wemakemarin.com/quickbooks/callback';
