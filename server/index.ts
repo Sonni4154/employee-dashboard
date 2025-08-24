@@ -7,6 +7,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { errorTracking } from "./services/error-tracking";
 import { prometheusMetrics } from "./services/prometheus-metrics";
+import { syncScheduler } from "./services/sync-scheduler";
 // import { setupNextAuth } from "./auth/nextauth-routes"; // Temporarily disabled
 
 const app = express();
@@ -88,6 +89,8 @@ app.use((req, res, next) => {
     log(`serving on port ${port}`);
     
     // Initialize sync scheduler for production operations
+    console.log('🔄 Starting automated sync scheduler...');
+    syncScheduler.start();
     log('Server ready - Production sync enabled');
   }).on('error', (err: any) => {
     if (err.code === 'EADDRINUSE') {
@@ -98,6 +101,8 @@ app.use((req, res, next) => {
         host: "0.0.0.0",
       }, () => {
         log(`serving on port ${newPort} (fallback port)`);
+        console.log('🔄 Starting automated sync scheduler...');
+        syncScheduler.start();
         log('Server ready - Production sync enabled');
       });
     } else {

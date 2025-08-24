@@ -68,7 +68,8 @@ export class SyncScheduler {
     this.initializeDefaultSchedules();
     this.loadSyncHistory();
     this.startRecommendationEngine();
-    console.log('🕒 Enhanced SyncScheduler initialized with smart recommendations');
+    this.startTokenRefreshMonitoring();
+    console.log('🕒 Enhanced SyncScheduler initialized with smart recommendations and token monitoring');
   }
 
   private initializeDefaultSchedules() {
@@ -430,6 +431,67 @@ export class SyncScheduler {
     console.log('🛑 Stopping all sync schedules');
     for (const provider of Array.from(this.activeIntervals.keys())) {
       this.stopSchedule(provider);
+    }
+  }
+
+  // Token refresh monitoring - Check and refresh tokens every 30 minutes
+  private startTokenRefreshMonitoring(): void {
+    console.log('🔐 Starting token refresh monitoring...');
+    
+    const checkAndRefreshTokens = async () => {
+      try {
+        console.log('🔍 Checking QuickBooks token status...');
+        
+        // Get all QuickBooks integrations
+        const allIntegrations = await storage.getIntegrations('dev_user_123');
+        const integrations = allIntegrations.filter(i => i.provider === 'quickbooks' && i.isActive);
+        
+        for (const integration of integrations) {
+          try {
+            // Test token validity and refresh if needed
+            await this.quickbooksService.getValidAccessToken(integration.userId);
+            console.log(`✅ QuickBooks token valid for user ${integration.userId}`);
+          } catch (error) {
+            console.error(`❌ Token refresh failed for user ${integration.userId}:`, error);
+            
+            // Log the token refresh failure
+            await storage.createActivityLog({
+              userId: integration.userId,
+              type: 'token_refresh_failed',
+              description: 'QuickBooks token refresh failed - manual reauthorization may be required',
+              metadata: { 
+                provider: 'quickbooks',
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date()
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.error('❌ Token monitoring error:', error);
+      }
+    };
+
+    // Check tokens immediately on startup
+    setTimeout(checkAndRefreshTokens, 5000); // 5 seconds after startup
+    
+    // Then check every 30 minutes
+    const tokenRefreshInterval = setInterval(checkAndRefreshTokens, 30 * 60 * 1000);
+    this.activeIntervals.set('token_refresh', tokenRefreshInterval);
+    
+    console.log('🔐 Token refresh monitoring started - checking every 30 minutes');
+  }
+
+  destroy(): void {
+    this.stopAllSchedules();
+    if (this.recommendationEngine) {
+      clearInterval(this.recommendationEngine);
+    }
+    // Clear token refresh monitoring
+    const tokenRefreshInterval = this.activeIntervals.get('token_refresh');
+    if (tokenRefreshInterval) {
+      clearInterval(tokenRefreshInterval);
+      this.activeIntervals.delete('token_refresh');
     }
   }
 }
