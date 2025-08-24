@@ -1,0 +1,62 @@
+Step 2: Update Your Server File
+Replace your current server/index.ts or server/routes.ts with the code from the artifact above, making sure to:
+
+Import your existing database connection
+Use your existing schema imports
+Keep your existing auth middleware if any
+Ensure API routes come BEFORE the React catch-all route
+
+Step 3: Verify Environment Variables
+Ensure your production .env has:
+bash# QuickBooks OAuth
+QBO_CLIENT_ID="ABcxWWL62bJFQd43vWFkko728BJLReocAxJKfeeemZtXfVAO1S"
+QBO_CLIENT_SECRET="your-actual-client-secret-from-intuit-console"
+QBO_REDIRECT_URI="https://www.wemakemarin.com/quickbooks/callback"
+QBO_BASE_URL="https://quickbooks.api.intuit.com/v3/company"
+
+# Session secret for OAuth security
+SESSION_SECRET="your-secure-session-secret"
+Step 4: Update Your Database Schema
+Make sure your integrations table has these columns:
+sql-- Add these columns if missing
+ALTER TABLE integrations ADD COLUMN IF NOT EXISTS realm_id VARCHAR(255);
+ALTER TABLE integrations ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;
+ALTER TABLE integrations ADD COLUMN IF NOT EXISTS last_sync_at TIMESTAMP;
+Step 5: Deploy and Test
+bash# Build and restart
+npm run build
+pm2 restart timesync-pro
+
+# Test the connect endpoint
+curl https://www.wemakemarin.com/api/integrations/quickbooks/connect
+Expected JSON response:
+json{
+  "success": true,
+  "authUrl": "https://appcenter.intuit.com/connect/oauth2?client_id=ABcx...",
+  "message": "Authorization URL generated successfully..."
+}
+Step 6: Complete OAuth Flow Test
+
+Copy the authUrl from step 5
+Visit it in your browser
+Complete QuickBooks authorization
+Should redirect to: /settings?qb=connected&success=QuickBooks%20connected%20successfully
+
+🎯 Critical Points
+
+Route Order: API routes MUST come before app.get('*', ...)
+Session Security: The session middleware is required for OAuth security
+Token Storage: Refresh tokens can change and must be updated
+Error Handling: Comprehensive logging for debugging
+
+🚨 Most Likely Issues
+
+Missing Client Secret - Double-check from Intuit console
+Wrong Route Order - API routes after React catch-all
+Missing Session Middleware - Required for OAuth state verification
+Database Schema - Missing required columns
+
+Once you implement this, your QuickBooks OAuth should work completely. The debug endpoint will help troubleshoot any token refresh issues.
+Test command after implementation:
+bashcurl https://www.wemakemarin.com/api/integrations/quickbooks/connect | jq
+Should return proper JSON, not HTML!
