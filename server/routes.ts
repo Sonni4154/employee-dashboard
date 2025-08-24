@@ -3033,6 +3033,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // ===== DEBUG ROUTES FOR QUICKBOOKS OAUTH =====
+  
+  // Debug endpoint to test database operations
+  app.post('/api/debug/database/test', async (req, res) => {
+    try {
+      console.log('🔧 Testing database connection and operations...');
+      
+      const userId = getUserId(req) || 'dev_user_123';
+      const testData = {
+        userId: userId,
+        provider: 'test_provider_' + Date.now(),
+        accessToken: 'test_access_token_' + Math.random(),
+        refreshToken: 'test_refresh_token_' + Math.random(),
+        realmId: '123456789',
+        isActive: true
+      };
+
+      // Test upsert operation
+      const result = await storage.upsertIntegration(testData);
+      console.log('✅ Integration upsert successful:', result);
+
+      res.json({
+        success: true,
+        message: 'Database operations successful',
+        userId: userId,
+        testResult: !!result
+      });
+
+    } catch (error: any) {
+      console.error('💥 Database test failed:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+
+  // Debug endpoint to check current integrations
+  app.get('/api/debug/integrations', async (req, res) => {
+    try {
+      const userId = getUserId(req) || 'dev_user_123';
+      const integration = await storage.getIntegration(userId, 'quickbooks');
+      
+      const debugData = integration ? {
+        id: integration.id,
+        provider: integration.provider,
+        userId: integration.userId,
+        hasAccessToken: !!integration.accessToken,
+        hasRefreshToken: !!integration.refreshToken,
+        realmId: integration.realmId,
+        expiresAt: integration.expiresAt,
+        isActive: integration.isActive,
+        lastSyncAt: integration.lastSyncAt
+      } : null;
+
+      res.json({
+        success: true,
+        userId: userId,
+        integration: debugData
+      });
+
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -326,9 +326,9 @@ export class QuickBooksService {
     }
     
     if (!integration.accessToken && integration.refreshToken) {
-      // Skip refresh attempts for test tokens or clearly invalid tokens
-      if (integration.refreshToken.startsWith('test_')) {
-        console.log('⚠️ Test refresh token detected - re-authorization required');
+      // Allow test tokens in development environment
+      if (integration.refreshToken.startsWith('test_') && process.env.NODE_ENV === 'production') {
+        console.log('⚠️ Test refresh token detected in production - re-authorization required');
         throw new Error('QuickBooks re-authorization required (test token)');
       }
       
@@ -374,9 +374,9 @@ export class QuickBooksService {
       
       // If 401 or connection issues, try to refresh token
       if (integration.refreshToken) {
-        // Skip refresh attempts for test tokens
-        if (integration.refreshToken.startsWith('test_')) {
-          console.log('⚠️ Test refresh token detected - re-authorization required');
+        // Allow test tokens in development environment
+        if (integration.refreshToken.startsWith('test_') && process.env.NODE_ENV === 'production') {
+          console.log('⚠️ Test refresh token detected in production - re-authorization required');
           throw new Error('QuickBooks re-authorization required (test token)');
         }
         
