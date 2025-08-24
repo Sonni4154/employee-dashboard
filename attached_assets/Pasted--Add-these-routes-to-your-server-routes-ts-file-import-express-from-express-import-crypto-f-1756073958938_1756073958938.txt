@@ -1,0 +1,197 @@
+// Add these routes to your server/routes.ts file
+
+import express from 'express';
+import crypto from 'crypto';
+
+const router = express.Router();
+
+// Environment variables
+const QBO_CLIENT_ID = process.env.QBO_CLIENT_ID;
+const QBO_CLIENT_SECRET = process.env.QBO_CLIENT_SECRET;
+const QBO_REDIRECT_URI = process.env.QBO_REDIRECT_URI;
+const QBO_BASE_URL = process.env.QBO_BASE_URL || 'https://quickbooks.api.intuit.com/v3/company';
+
+// ===== QuickBooks OAuth Start =====
+router.get('/api/integrations/quickbooks/connect', async (req, res) => {
+  try {
+    console.log('QuickBooks connect endpoint hit');
+    
+    // Check environment variables
+    if (!QBO_CLIENT_ID || !QBO_CLIENT_SECRET || !QBO_REDIRECT_URI) {
+      console.error('Missing QuickBooks environment variables:', {
+        hasClientId: !!QBO_CLIENT_ID,
+        hasClientSecret: !!QBO_CLIENT_SECRET,
+        hasRedirectUri: !!QBO_REDIRECT_URI
+      });
+      return res.status(500).json({ 
+        error: 'QuickBooks integration not configured',
+        details: 'Missing environment variables'
+      });
+    }
+
+    // Generate secure random state
+    const state = crypto.randomBytes(32).toString('hex');
+    const scopes = 'com.intuit.quickbooks.accounting';
+    
+    // Build authorization URL
+    const authUrl = new URL('https://appcenter.intuit.com/connect/oauth2');
+    authUrl.searchParams.set('client_id', QBO_CLIENT_ID);
+    authUrl.searchParams.set('scope', scopes);
+    authUrl.searchParams.set('redirect_uri', QBO_REDIRECT_URI);
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('state', state);
+
+    // Store state in session for verification
+    if (req.session) {
+      req.session.qb_state = state;
+    }
+
+    console.log('Generated QuickBooks auth URL:', authUrl.toString());
+
+    // Return JSON response (not redirect)
+    res.json({ 
+      authUrl: authUrl.toString(),
+      success: true,
+      message: 'Authorization URL generated successfully'
+    });
+  } catch (error) {
+    console.error('QuickBooks connect error:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate authorization URL',
+      details: error.message 
+    });
+  }
+});
+
+// ===== QuickBooks OAuth Callback =====
+router.get('/quickbooks/callback', async (req, res) => {
+  try {
+    console.log('QuickBooks callback received:', {
+      query: req.query,
+      hasCode: !!req.query.code,
+      hasRealmId: !!req.query.realmId,
+      hasState: !!req.query.state
+    });
+
+    const { code, realmId, state } = req.query;
+    
+    // Validate required parameters
+    if (!code) {
+      console.error('Missing authorization code');
+      return res.redirect('/settings?qb_error=Missing%20authorization%20code');
+    }
+
+    if (!realmId) {
+      console.error('Missing realm ID');
+      return res.redirect('/settings?qb_error=Missing%20realm%20ID');
+    }
+
+    // Verify state parameter (security check)
+    if (req.session && req.session.qb_state && state !== req.session.qb_state) {
+      console.error('State parameter mismatch:', { 
+        received: state, 
+        expected: req.session.qb_state 
+      });
+      return res.redirect('/settings?qb_error=Invalid%20state%20parameter');
+    }
+
+    console.log('Exchanging authorization code for tokens...');
+
+    // Exchange authorization code for tokens
+    const tokenResponse = await fetch('https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+        'Authorization': `Basic ${Buffer.from(`${QBO_CLIENT_ID}:${QBO_CLIENT_SECRET}`).toString('base64')}`
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: code as string,
+        redirect_uri: QBO_REDIRECT_URI
+      })
+    });
+
+    const tokens = await tokenResponse.json();
+    
+    if (!tokenResponse.ok) {
+      console.error('Token exchange failed:', {
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText,
+        error: tokens
+      });
+      return res.redirect('/settings?qb_error=Token%20exchange%20failed');
+    }
+
+    console.log('Token exchange successful, saving to database...');
+
+    // TODO: Save tokens to your database
+    // You'll need to implement this based on your database schema
+    /*
+    await saveQuickBooksIntegration({
+      userId: req.user?.id, // Assuming you have user context
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      realmId: realmId as string,
+      expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
+      provider: 'quickbooks',
+      isActive: true
+    });
+    */
+
+    // Clear the state from session
+    if (req.session) {
+      delete req.session.qb_state;
+    }
+
+    console.log('QuickBooks integration completed successfully');
+    res.redirect('/settings?qb=connected&success=true');
+    
+  } catch (error) {
+    console.error('QuickBooks callback error:', error);
+    res.redirect('/settings?qb_error=Internal%20server%20error');
+  }
+});
+
+// ===== Manual Sync Trigger =====
+router.post('/api/integrations/quickbooks/sync', async (req, res) => {
+  try {
+    // TODO: Implement sync logic
+    console.log('Manual QuickBooks sync requested');
+    
+    // Get stored tokens from database
+    // Refresh token if needed
+    // Perform sync operations
+    
+    res.json({ 
+      success: true, 
+      message: 'Sync completed successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('QuickBooks sync error:', error);
+    res.status(500).json({ 
+      error: 'Sync failed',
+      details: error.message 
+    });
+  }
+});
+
+// ===== Integration Status =====
+router.get('/api/sync/status', async (req, res) => {
+  try {
+    // TODO: Check integration status from database
+    res.json({
+      quickbooks: {
+        connected: false, // Check from database
+        lastSync: null,
+        isActive: false
+      }
+    });
+  } catch (error) {
+    console.error('Status check error:', error);
+    res.status(500).json({ error: 'Failed to get status' });
+  }
+});
+
+export default router;

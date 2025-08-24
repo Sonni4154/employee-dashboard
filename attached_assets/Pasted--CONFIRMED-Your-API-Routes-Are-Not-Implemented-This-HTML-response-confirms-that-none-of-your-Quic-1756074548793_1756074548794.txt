@@ -1,0 +1,106 @@
+🚨 CONFIRMED: Your API Routes Are Not Implemented
+This HTML response confirms that none of your QuickBooks API routes are actually working. Your server is serving the React frontend for all API calls because the routes don't exist.
+🔧 Root Cause: Missing Route Implementation
+Your server configuration is:
+
+✅ React app serving - working
+❌ API routes - completely missing
+✅ HTTPS/SSL - working
+❌ QuickBooks OAuth - broken due to #2
+
+🚀 Immediate Fix Required
+Step 1: Check Your Current Server Structure
+SSH to your server and check what's actually in your routes file:
+bash# Check if routes file exists and what's in it
+ls -la /var/www/timesync-pro/server/
+cat /var/www/timesync-pro/server/routes.ts
+Step 2: Find Your Server Entry Point
+Check your main server file:
+bashcat /var/www/timesync-pro/server/index.ts
+Look for how routes are being imported and used.
+Step 3: Add Missing QuickBooks Routes
+You need to actually add the QuickBooks routes to your server code. Here's what to do:
+Option A: If you have server/routes.ts:
+
+Open the file
+Add the QuickBooks routes from my artifact
+Make sure they're exported and imported in your main server file
+
+Option B: If routes are in server/index.ts:
+Add the routes directly to your main server file BEFORE the React catch-all route.
+📝 Critical Server Structure Fix
+Your server/index.ts should look like this structure:
+typescriptimport express from 'express';
+import path from 'path';
+
+const app = express();
+
+// Middleware setup
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// ===== API ROUTES FIRST =====
+app.get('/api/integrations/quickbooks/connect', async (req, res) => {
+  // QuickBooks connect logic
+});
+
+app.get('/quickbooks/callback', async (req, res) => {
+  // QuickBooks callback logic  
+});
+
+app.post('/api/debug/quickbooks/refresh-token', async (req, res) => {
+  // Debug route
+});
+
+// ... other API routes
+
+// ===== REACT APP LAST (CATCH-ALL) =====
+app.use(express.static(path.join(__dirname, '../client/dist')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+});
+The key is API routes MUST come BEFORE the app.get('*', ...) catch-all route.
+🛠️ Quick Fix Steps
+
+SSH to your server:
+
+bashssh your-server
+cd /var/www/timesync-pro/server
+
+Edit your server file:
+
+bashnano index.ts
+# or
+nano routes.ts
+
+Add the missing QuickBooks routes from my artifact
+Restart the server:
+
+bashpm2 restart timesync-pro
+
+Test the fix:
+
+bashcurl https://www.wemakemarin.com/api/integrations/quickbooks/connect
+Should return JSON, not HTML.
+🎯 What You'll See After Fix
+Before (current):
+bashcurl /api/integrations/quickbooks/connect
+# Returns: HTML (React app)
+After (fixed):
+bashcurl /api/integrations/quickbooks/connect  
+# Returns: {"authUrl": "https://appcenter.intuit.com/connect/oauth2?...", "success": true}
+🚨 Why This Happened
+Your README documents the API endpoints, but they were never actually implemented in the server code. The documentation shows what should exist, but the actual route handlers are missing.
+This is why:
+
+OAuth never starts (no connect endpoint)
+Callback fails with "Missing OAuth parameters" (route exists but has no proper logic)
+Token refresh fails (no refresh logic)
+
+Can you:
+
+Check what's currently in your server/index.ts or server/routes.ts
+Share a snippet of the current server code
+Add the QuickBooks routes and restart the server
+
+Once you actually implement the API routes, your QuickBooks OAuth will start working immediately!

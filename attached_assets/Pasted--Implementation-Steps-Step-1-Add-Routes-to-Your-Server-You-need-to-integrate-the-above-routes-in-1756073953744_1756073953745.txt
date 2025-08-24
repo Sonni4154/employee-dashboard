@@ -1,0 +1,71 @@
+🛠️ Implementation Steps
+Step 1: Add Routes to Your Server
+You need to integrate the above routes into your existing server. In your server/index.ts or server/routes.ts, make sure you:
+
+Import the routes and use them before your catch-all React route
+Add session middleware for OAuth state verification
+Ensure proper route ordering
+
+Step 2: Fix Environment Variables
+Your production .env file needs:
+bash# QuickBooks OAuth Configuration
+QBO_CLIENT_ID="ABcxWWL62bJFQd43vWFkko728BJLReocAxJKfeeemZtXfVAO1S"
+QBO_CLIENT_SECRET="your-actual-client-secret-from-intuit-console"
+QBO_REDIRECT_URI="https://www.wemakemarin.com/quickbooks/callback"
+QBO_BASE_URL="https://quickbooks.api.intuit.com/v3/company"
+QBO_ENVIRONMENT="production"
+Step 3: Add Session Middleware
+Your Express server needs session support for OAuth state verification:
+typescriptimport session from 'express-session';
+
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-session-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+Step 4: Database Integration
+You'll need to modify the token storage part to work with your existing database schema. Based on your README, you have an integrations table.
+🧪 Testing Steps
+After implementing:
+
+Test the connect endpoint:
+
+bashcurl https://www.wemakemarin.com/api/integrations/quickbooks/connect
+Should return JSON with authUrl
+
+Test the full OAuth flow:
+
+Copy the authUrl from step 1
+Visit it in browser
+Complete QuickBooks authorization
+Should redirect to /settings?qb=connected&success=true
+
+
+Check server logs:
+
+bashpm2 logs timesync-pro --lines 50 --follow
+🚀 Quick Fix Priorities
+
+Most Important: Add the OAuth routes (they're completely missing)
+Critical: Set the correct QBO_CLIENT_SECRET environment variable
+Important: Add session middleware for security
+Necessary: Connect the token storage to your database
+
+Debug Commands
+After deployment, test each step:
+bash# 1. Test environment variables are set
+curl https://www.wemakemarin.com/api/integrations/quickbooks/connect
+
+# 2. Should return JSON like:
+# {"authUrl": "https://appcenter.intuit.com/connect/oauth2?...", "success": true}
+
+# 3. Test callback route exists
+curl -I https://www.wemakemarin.com/quickbooks/callback?code=test&realmId=123&state=test
+
+# 4. Should return 302 redirect to /settings with appropriate error/success
+The main issue is that your QuickBooks OAuth routes are documented in your README but not actually implemented in your server code. Once you add these routes and restart your server, the OAuth flow should work.

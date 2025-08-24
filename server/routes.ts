@@ -920,7 +920,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const integration = await storage.getIntegration(userId, 'quickbooks');
       
       // Get the actual baseUrl from the QuickBooks service instance
-      const actualBaseUrl = quickbooksService.getBaseUrl?.() || process.env.QBO_BASE_URL?.replace(/\/$/, '') || 'Not available';
+      const actualBaseUrl = quickbooksService.getBaseUrl() || process.env.QBO_BASE_URL?.replace(/\/$/, '') || 'Not available';
       
       res.json({
         status: 'success',
@@ -959,7 +959,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/quickbooks/test', async (req: any, res) => {
     try {
       const userId = getUserId(req) || 'dev_user_123';
-      const testResult = await quickbooksService.testConnection(userId);
+      // Test connection by getting company info
+      const integration = await storage.getIntegration(userId, 'quickbooks');
+      if (!integration?.accessToken || !integration?.realmId) {
+        throw new Error('QuickBooks not connected');
+      }
+      const testResult = await quickbooksService.getCompanyInfo(integration.accessToken, integration.realmId);
       res.json({ 
         status: 'success',
         message: 'QuickBooks connection test successful',
@@ -1089,29 +1094,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API endpoint for QuickBooks connection (returns JSON)
-  app.get('/api/integrations/quickbooks/connect', (req: any, res) => {
+  app.get('/api/integrations/quickbooks/connect', async (req: any, res) => {
     try {
       console.log('🔗 QuickBooks API connection requested');
-      const userId = getUserId(req) || 'dev_user_123';
       
-      // Always use production redirect URI to match QuickBooks app configuration
-      const redirectUri = process.env.QBO_REDIRECT_URI || 'https://www.wemakemarin.com/quickbooks/callback';
-      console.log('🔧 Using redirect URI:', redirectUri);
+      // Check environment variables
+      const QBO_CLIENT_ID = process.env.QBO_CLIENT_ID;
+      const QBO_CLIENT_SECRET = process.env.QBO_CLIENT_SECRET;
+      const QBO_REDIRECT_URI = process.env.QBO_REDIRECT_URI;
       
-      const authUrl = quickbooksService.getAuthorizationUrl(userId, redirectUri);
-      console.log(`📋 Generated QuickBooks OAuth URL: ${authUrl}`);
+      if (!QBO_CLIENT_ID || !QBO_CLIENT_SECRET || !QBO_REDIRECT_URI) {
+        console.error('❌ Missing QuickBooks environment variables:', {
+          hasClientId: !!QBO_CLIENT_ID,
+          hasClientSecret: !!QBO_CLIENT_SECRET,
+          hasRedirectUri: !!QBO_REDIRECT_URI
+        });
+        return res.status(500).json({ 
+          error: 'QuickBooks integration not configured',
+          details: 'Missing environment variables',
+          success: false
+        });
+      }
+
+      // Generate secure random state
+      const crypto = await import('crypto');
+      const state = crypto.randomBytes(32).toString('hex');
+      const scopes = 'com.intuit.quickbooks.accounting';
       
+      // Build authorization URL
+      const authUrl = new URL('https://appcenter.intuit.com/connect/oauth2');
+      authUrl.searchParams.set('client_id', QBO_CLIENT_ID);
+      authUrl.searchParams.set('scope', scopes);
+      authUrl.searchParams.set('redirect_uri', QBO_REDIRECT_URI);
+      authUrl.searchParams.set('response_type', 'code');
+      authUrl.searchParams.set('state', state);
+
+      // Store state in session for verification
+      if (req.session) {
+        req.session.qb_state = state;
+      }
+
+      console.log('📋 Generated QuickBooks auth URL:', authUrl.toString());
+
       res.json({ 
-        authUrl,
+        authUrl: authUrl.toString(),
         success: true,
-        redirectUri,
+        message: 'Authorization URL generated successfully',
         timestamp: new Date().toISOString()
       });
     } catch (error: any) {
-      console.error('Failed to generate QuickBooks authorization URL:', error);
+      console.error('❌ QuickBooks connect error:', error);
       res.status(500).json({ 
         error: 'Failed to generate authorization URL',
-        message: error.message,
+        details: error.message,
         success: false 
       });
     }
@@ -1166,7 +1201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('✅ Token exchange successful!');
       
       // Get user ID (use temp for development)
-      const userId = req.user?.claims?.sub || 'dev_user_123';
+      const userId = getUserId(req) || 'dev_user_123';
       
       // Store integration in database
       try {
@@ -2234,7 +2269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const { syncScheduler } = await import('./services/sync-scheduler');
       
-      await syncScheduler.runSyncNow('quickbooks'); // Using available method
+      await syncScheduler.triggerQuickBooksSync(); // Using available method
       
       res.json({ message: "Immediate sync completed" });
     } catch (error) {

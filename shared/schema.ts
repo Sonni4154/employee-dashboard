@@ -322,6 +322,7 @@ export const integrations = pgTable("integrations", {
   settings: jsonb("settings"),
   isActive: boolean("is_active").default(true),
   lastSyncAt: timestamp("last_sync_at"),
+  expiresAt: timestamp("expires_at"), // Token expiration time
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
