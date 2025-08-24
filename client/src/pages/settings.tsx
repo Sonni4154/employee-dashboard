@@ -44,6 +44,38 @@ export default function Settings() {
   // Check for QuickBooks connection success in URL params
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
+    
+    // Check for OAuth success
+    if (urlParams.get('qb_success') === '1') {
+      const realmId = urlParams.get('realmId');
+      toast({
+        title: "QuickBooks Connected!",
+        description: realmId 
+          ? `Successfully connected to QuickBooks (Realm ID: ${realmId})`
+          : "Successfully connected to QuickBooks",
+        variant: "default",
+      });
+      // Clean up URL and refetch integrations
+      window.history.replaceState({}, document.title, '/settings?tab=integrations');
+      // Refetch to update status indicators
+      setTimeout(() => {
+        refetchIntegrations?.();
+      }, 1000);
+    }
+    
+    // Check for OAuth errors
+    if (urlParams.get('qb_error')) {
+      const errorMsg = decodeURIComponent(urlParams.get('qb_error') || '');
+      toast({
+        title: "QuickBooks Connection Failed",
+        description: errorMsg || "Failed to connect to QuickBooks",
+        variant: "destructive",
+      });
+      // Clean up URL
+      window.history.replaceState({}, document.title, '/settings?tab=integrations');
+    }
+    
+    // Legacy support for old parameter
     if (urlParams.get('qb_connected') === 'true') {
       const companyId = urlParams.get('company_id');
       toast({
@@ -54,7 +86,10 @@ export default function Settings() {
         variant: "default",
       });
       // Clean up URL
-      window.history.replaceState({}, document.title, '/settings');
+      window.history.replaceState({}, document.title, '/settings?tab=integrations');
+      setTimeout(() => {
+        refetchIntegrations?.();
+      }, 1000);
     }
   }, [toast]);
 

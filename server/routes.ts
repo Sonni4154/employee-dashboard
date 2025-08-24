@@ -913,6 +913,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // QuickBooks integration debug endpoint
+  app.get('/api/integrations/quickbooks/debug', async (req: any, res) => {
+    try {
+      const userId = getUserId(req) || 'dev_user_123';
+      const integration = await storage.getIntegration(userId, 'quickbooks');
+      
+      res.json({
+        status: 'success',
+        integration: integration ? {
+          id: integration.id,
+          provider: integration.provider,
+          isActive: integration.isActive,
+          hasAccessToken: !!integration.accessToken,
+          hasRefreshToken: !!integration.refreshToken,
+          realmId: integration.realmId,
+          lastSyncAt: integration.lastSyncAt,
+          createdAt: integration.createdAt
+        } : null,
+        environment: {
+          clientId: process.env.QBO_CLIENT_ID ? 'configured' : 'missing',
+          clientSecret: process.env.QBO_CLIENT_SECRET ? 'configured' : 'missing',
+          redirectUri: process.env.QBO_REDIRECT_URI || 'https://www.wemakemarin.com/quickbooks/callback',
+          environment: process.env.QBO_ENVIRONMENT || 'production',
+          baseUrl: process.env.QBO_ENVIRONMENT === 'sandbox' ? 'https://sandbox-quickbooks.api.intuit.com' : 'https://quickbooks.api.intuit.com'
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('QuickBooks debug failed:', error);
+      res.status(500).json({ 
+        status: 'error',
+        message: 'Failed to get QuickBooks debug info',
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // QuickBooks test connection endpoint
   app.get('/api/quickbooks/test', async (req: any, res) => {
     try {
@@ -929,6 +967,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         status: 'error',
         message: 'QuickBooks connection test failed',
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // QuickBooks debug info endpoint
+  app.get('/api/quickbooks/debug', async (req: any, res) => {
+    try {
+      const userId = getUserId(req) || 'dev_user_123';
+      const integration = await storage.getIntegration(userId, 'quickbooks');
+      
+      res.json({
+        status: 'success',
+        integration: integration ? {
+          id: integration.id,
+          provider: integration.provider,
+          isActive: integration.isActive,
+          hasAccessToken: !!integration.accessToken,
+          hasRefreshToken: !!integration.refreshToken,
+          realmId: integration.realmId,
+          lastSyncAt: integration.lastSyncAt
+        } : null,
+        environment: {
+          clientId: process.env.QBO_CLIENT_ID ? 'configured' : 'missing',
+          clientSecret: process.env.QBO_CLIENT_SECRET ? 'configured' : 'missing',
+          redirectUri: process.env.QBO_REDIRECT_URI || 'https://www.wemakemarin.com/quickbooks/callback',
+          environment: process.env.QBO_ENVIRONMENT || 'production'
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('QuickBooks debug info failed:', error);
+      res.status(500).json({ 
+        status: 'error',
+        message: 'Failed to get debug info',
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // QuickBooks connection status endpoint
+  app.get('/api/quickbooks/status', async (req: any, res) => {
+    try {
+      const userId = getUserId(req) || 'dev_user_123';
+      const integration = await storage.getIntegration(userId, 'quickbooks');
+      
+      if (!integration) {
+        return res.json({
+          status: 'disconnected',
+          message: 'No QuickBooks integration found',
+          connected: false
+        });
+      }
+      
+      res.json({
+        status: integration.isActive ? 'connected' : 'inactive',
+        connected: integration.isActive,
+        realmId: integration.realmId,
+        lastSyncAt: integration.lastSyncAt,
+        hasTokens: !!(integration.accessToken && integration.refreshToken),
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('QuickBooks status check failed:', error);
+      res.status(500).json({ 
+        status: 'error',
+        message: 'Failed to check connection status',
         error: error.message,
         timestamp: new Date().toISOString()
       });
@@ -1003,12 +1110,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle OAuth error responses from QuickBooks
       if (error) {
         console.error('QuickBooks OAuth error:', error);
-        return res.redirect('/settings?qb_error=' + encodeURIComponent(error));
+        return res.redirect('/settings?tab=integrations&qb_error=' + encodeURIComponent(error));
       }
       
       if (!code || !realmId) {
         console.error('Missing required parameters:', { code: !!code, realmId: !!realmId });
-        return res.redirect('/settings?qb_error=' + encodeURIComponent('Missing OAuth parameters'));
+        return res.redirect('/settings?tab=integrations&qb_error=' + encodeURIComponent('Missing OAuth parameters'));
       }
 
       console.log('🎯 Processing QuickBooks OAuth callback - SINGLE EXCHANGE');
@@ -1063,7 +1170,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
       } catch (dbError) {
         console.error('❌ Database error storing integration:', dbError);
-        return res.redirect('/settings?qb_error=' + encodeURIComponent('Database error: ' + dbError));
+        return res.redirect('/settings?tab=integrations&qb_error=' + encodeURIComponent('Database error: ' + dbError));
       }
       
       // Run initial sync in the background (don't await to avoid timeout)
@@ -1072,12 +1179,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       console.log('🎉 QuickBooks OAuth flow completed successfully');
-      res.redirect('/settings?qb_success=1');
+      res.redirect('/settings?tab=integrations&qb_success=1&realmId=' + encodeURIComponent(String(realmId)));
       
     } catch (error: any) {
       console.error('❌ QuickBooks callback error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown OAuth error';
-      res.redirect('/settings?qb_error=' + encodeURIComponent(errorMessage));
+      res.redirect('/settings?tab=integrations&qb_error=' + encodeURIComponent(errorMessage));
     }
   });
 
