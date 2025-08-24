@@ -919,6 +919,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getUserId(req) || 'dev_user_123';
       const integration = await storage.getIntegration(userId, 'quickbooks');
       
+      // Get the actual baseUrl from the QuickBooks service instance
+      const actualBaseUrl = quickbooksService.getBaseUrl?.() || process.env.QBO_BASE_URL?.replace(/\/$/, '') || 'Not available';
+      
       res.json({
         status: 'success',
         integration: integration ? {
@@ -936,7 +939,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           clientSecret: process.env.QBO_CLIENT_SECRET ? 'configured' : 'missing',
           redirectUri: process.env.QBO_REDIRECT_URI || 'https://www.wemakemarin.com/quickbooks/callback',
           environment: process.env.QBO_ENVIRONMENT || 'production',
-          baseUrl: process.env.QBO_ENVIRONMENT === 'sandbox' ? 'https://sandbox-quickbooks.api.intuit.com' : 'https://quickbooks.api.intuit.com'
+          baseUrl: actualBaseUrl,
+          envBaseUrl: process.env.QBO_BASE_URL || 'Not set'
         },
         timestamp: new Date().toISOString()
       });

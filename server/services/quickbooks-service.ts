@@ -67,6 +67,8 @@ export class QuickBooksService {
     // Ensure no trailing slash
     this.baseUrl = baseUrl.replace(/\/$/, '');
     
+    console.log(`🔧 QuickBooks Base URL: ${this.baseUrl}`);
+    
     // Always use production redirect URI to match QuickBooks app configuration
     const redirectUri = process.env.QBO_REDIRECT_URI || 'https://www.wemakemarin.com/quickbooks/callback';
 
@@ -90,6 +92,11 @@ export class QuickBooksService {
     }
 
     console.log('✅ QuickBooks service initialized successfully');
+  }
+
+  // Method to get the current base URL
+  getBaseUrl(): string {
+    return this.baseUrl;
   }
 
   // Generate OAuth authorization URL using Intuit OAuth Client
