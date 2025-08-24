@@ -422,12 +422,24 @@ export class QuickBooksService {
       let created = 0, updated = 0, skipped = 0;
 
       for (const qbCustomer of customers) {
+        // Debug logging for customer data
+        console.log(`📝 Processing QB Customer ID ${qbCustomer.Id}:`, {
+          name: qbCustomer.Name,
+          companyName: qbCustomer.CompanyName,
+          active: qbCustomer.Active
+        });
+        
         // Check if customer already exists by QuickBooks ID
         const existingCustomer = await storage.getCustomerByQuickbooksId(qbCustomer.Id);
         
+        // Handle cases where QuickBooks customer has no name
+        const customerName = qbCustomer.Name || qbCustomer.CompanyName || `Customer ${qbCustomer.Id}` || 'Unnamed Customer';
+        
+        console.log(`📝 Resolved customer name: "${customerName}"`);
+        
         const customerData = {
           userId,
-          name: qbCustomer.Name,
+          name: customerName,
           companyName: qbCustomer.CompanyName || null,
           email: qbCustomer.PrimaryEmailAddr?.Address || null,
           phone: qbCustomer.PrimaryPhone?.FreeFormNumber || null,
@@ -562,9 +574,29 @@ export class QuickBooksService {
 
   private async processInvoice(qbInvoice: any, userId: string): Promise<void> {
     try {
-      const invoice = await storage.createInvoice({
+      // Check if invoice already exists by QuickBooks ID
+      console.log(`🔍 Checking if invoice ${qbInvoice.Id} already exists...`);
+      const existingInvoice = await storage.getInvoiceByQuickbooksId(qbInvoice.Id);
+      console.log(`🔍 Invoice ${qbInvoice.Id} exists:`, !!existingInvoice);
+      
+      // Map QuickBooks customer ID to our internal database customer ID
+      let customerId: string | null = null;
+      const qbCustomerId = qbInvoice.CustomerRef?.value;
+      
+      if (qbCustomerId) {
+        const customer = await storage.getCustomerByQuickbooksId(qbCustomerId);
+        customerId = customer?.id || null;
+      }
+
+      // Skip invoices without valid customer mapping
+      if (!customerId) {
+        console.log(`⚠️ Skipping invoice ${qbInvoice.Id} - no customer mapping for QB ID: ${qbCustomerId}`);
+        return;
+      }
+
+      const invoiceData = {
         userId,
-        customerId: qbInvoice.CustomerRef?.value || '',
+        customerId,
         quickbooksId: qbInvoice.Id,
         invoiceNumber: qbInvoice.DocNumber || 'QB-' + qbInvoice.Id,
         invoiceDate: new Date(qbInvoice.TxnDate || Date.now()),
@@ -574,15 +606,38 @@ export class QuickBooksService {
         taxAmount: qbInvoice.TxnTaxDetail?.TotalTax?.toString() || '0',
         totalAmount: qbInvoice.TotalAmt?.toString() || '0',
         notes: qbInvoice.CustomerMemo?.value || null
-      });
+      };
+
+      let invoice;
+      if (existingInvoice) {
+        // Update existing invoice
+        invoice = await storage.updateInvoice(existingInvoice.id, invoiceData);
+      } else {
+        // Create new invoice
+        invoice = await storage.createInvoice(invoiceData);
+      }
+
+      // Skip processing line items if we're updating (to avoid duplicates)
+      if (existingInvoice) {
+        return;
+      }
 
       // Process invoice line items if present
       if (qbInvoice.Line && Array.isArray(qbInvoice.Line)) {
         for (const line of qbInvoice.Line) {
           if (line.DetailType === 'SalesItemLineDetail' && line.SalesItemLineDetail) {
+            // Map QuickBooks product ID to our internal database product ID
+            let productId: string | null = null;
+            const qbProductId = line.SalesItemLineDetail.ItemRef?.value;
+            
+            if (qbProductId) {
+              const product = await storage.getProductByQuickbooksId(qbProductId);
+              productId = product?.id || null;
+            }
+
             await storage.createInvoiceItem({
               invoiceId: invoice.id,
-              productId: line.SalesItemLineDetail.ItemRef?.value || null,
+              productId,
               description: line.Description || 'QuickBooks Item',
               quantity: line.SalesItemLineDetail.Qty?.toString() || '1',
               unitPrice: line.SalesItemLineDetail.UnitPrice?.toString() || '0',

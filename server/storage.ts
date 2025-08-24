@@ -358,6 +358,11 @@ export class DatabaseStorage implements IStorage {
     return invoice;
   }
 
+  async getInvoiceByQuickbooksId(quickbooksId: string): Promise<Invoice | undefined> {
+    const [invoice] = await db.select().from(invoices).where(eq(invoices.quickbooksId, quickbooksId));
+    return invoice;
+  }
+
   async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
     const [newInvoice] = await db.insert(invoices).values(invoice).returning();
     return newInvoice;
