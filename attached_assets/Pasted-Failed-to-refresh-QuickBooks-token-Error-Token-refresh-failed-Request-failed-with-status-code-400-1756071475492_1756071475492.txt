@@ -1,0 +1,163 @@
+Failed to refresh QuickBooks token: Error: Token refresh failed: Request failed with status code 400
+    at QuickBooksService.refreshAccessToken (/home/runner/workspace/server/services/quickbooks-service.ts:258:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async QuickBooksService.getValidAccessToken (/home/runner/workspace/server/services/quickbooks-service.ts:359:35)
+    at async Timeout.checkAndRefreshTokens (/home/runner/workspace/server/services/sync-scheduler.ts:452:13)
+❌ Token refresh failed for user dev_user_123: Error: QuickBooks token expired and refresh failed
+    at QuickBooksService.getValidAccessToken (/home/runner/workspace/server/services/quickbooks-service.ts:375:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Timeout.checkAndRefreshTokens (/home/runner/workspace/server/services/sync-scheduler.ts:452:13)
+❌ Token refresh failed: {
+  message: 'Request failed with status code 400',
+  authResponse: AuthResponse {
+    token: Token {
+      realmId: '',
+      token_type: '',
+      access_token: '',
+      refresh_token: '',
+      expires_in: 0,
+      x_refresh_token_expires_in: 0,
+      id_token: '',
+      latency: 60000,
+      createdAt: 1756071438989
+    },
+    response: '',
+    body: '',
+    json: null,
+    intuit_tid: ''
+  },
+  intuit_tid: '',
+  originalError: AxiosError: Request failed with status code 400
+      at settle (/home/runner/workspace/node_modules/axios/lib/core/settle.js:19:12)
+      at IncomingMessage.handleStreamEnd (/home/runner/workspace/node_modules/axios/lib/adapters/http.js:599:11)
+      at IncomingMessage.emit (node:events:536:35)
+      at endReadableNT (node:internal/streams/readable:1698:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+      at Axios.request (/home/runner/workspace/node_modules/axios/lib/core/Axios.js:45:41)
+      at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+      at async QuickBooksService.refreshAccessToken (/home/runner/workspace/server/services/quickbooks-service.ts:232:28)
+      at async QuickBooksService.getValidAccessToken (/home/runner/workspace/server/services/quickbooks-service.ts:359:35)
+      at async Timeout.checkAndRefreshTokens (/home/runner/workspace/server/services/sync-scheduler.ts:452:13) {
+    code: 'ERR_BAD_REQUEST',
+    config: {
+      transitional: [Object],
+      adapter: [Array],
+      transformRequest: [Array],
+      transformResponse: [Array],
+      timeout: 0,
+      xsrfCookieName: 'XSRF-TOKEN',
+      xsrfHeaderName: 'X-XSRF-TOKEN',
+      maxContentLength: -1,
+      maxBodyLength: -1,
+      env: [Object],
+      validateStatus: [Function: validateStatus],
+      headers: [Object [AxiosHeaders]],
+      url: 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer',
+      data: 'grant_type=refresh_token&refresh_token=test_refresh_token_1756029480787',
+      method: 'post',
+      allowAbsoluteUrls: true
+    },
+    request: ClientRequest {
+      _events: [Object: null prototype],
+      _eventsCount: 7,
+      _maxListeners: undefined,
+      outputData: [],
+      outputSize: 0,
+      writable: true,
+      destroyed: true,
+      _last: false,
+      chunkedEncoding: false,
+      shouldKeepAlive: true,
+      maxRequestsOnConnectionReached: false,
+      _defaultKeepAlive: true,
+      useChunkedEncodingByDefault: true,
+      sendDate: false,
+      _removedConnection: false,
+      _removedContLen: false,
+      _removedTE: false,
+      strictContentLength: false,
+      _contentLength: '71',
+      _hasBody: true,
+      _trailer: '',
+      finished: true,
+      _headerSent: true,
+      _closed: true,
+      socket: [TLSSocket],
+      _header: 'POST /oauth2/v1/tokens/bearer HTTP/1.1\r\n' +
+        'Accept: application/json\r\n' +
+        'Content-Type: application/x-www-form-urlencoded\r\n' +
+        'Authorization: Basic QUJzWklic0ZsQWlySU5TYk9raGRQTjRVNEtQM2VlTEtTUVR0Nmc4MGhLNHhUY0VqQk46dUo5djVwcGloVmN2cWVSTmxJZGdPejFtc1NMQk0wajVURHpyQ0MwYQ==\r\n' +
+        'User-Agent: Intuit-OAuthClient-JS_4.2.0_Linux_6.2.16_linux\r\n' +
+        'Content-Length: 71\r\n' +
+        'Accept-Encoding: gzip, compress, deflate, br\r\n' +
+        'Host: oauth.platform.intuit.com\r\n' +
+        'Connection: keep-alive\r\n' +
+        '\r\n',
+      _keepAliveTimeout: 0,
+      _onPendingData: [Function: nop],
+      agent: [Agent],
+      socketPath: undefined,
+      method: 'POST',
+      maxHeaderSize: undefined,
+      insecureHTTPParser: undefined,
+      joinDuplicateHeaders: undefined,
+      path: '/oauth2/v1/tokens/bearer',
+      _ended: true,
+      res: [IncomingMessage],
+      aborted: false,
+      timeoutCb: null,
+      upgradeOrConnect: false,
+      parser: null,
+      maxHeadersCount: null,
+      reusedSocket: false,
+      host: 'oauth.platform.intuit.com',
+      protocol: 'https:',
+      _redirectable: [Writable],
+      [Symbol(shapeMode)]: false,
+      [Symbol(kCapture)]: false,
+      [Symbol(kBytesWritten)]: 0,
+      [Symbol(kNeedDrain)]: false,
+      [Symbol(corked)]: 0,
+      [Symbol(kOutHeaders)]: [Object: null prototype],
+      [Symbol(errored)]: null,
+      [Symbol(kHighWaterMark)]: 16384,
+      [Symbol(kRejectNonStandardBodyWrites)]: false,
+      [Symbol(kUniqueHeaders)]: null
+    },
+    response: {
+      status: 400,
+      statusText: 'Bad Request',
+      headers: [Object [AxiosHeaders]],
+      config: [Object],
+      request: [ClientRequest],
+      data: [Object]
+    },
+    status: 400,
+    error: 'Request failed with status code 400',
+    authResponse: AuthResponse {
+      token: [Token],
+      response: '',
+      body: '',
+      json: null,
+      intuit_tid: ''
+    },
+    intuit_tid: '',
+    originalMessage: 'Request failed with status code 400',
+    error_description: ''
+  }
+}
+Failed to refresh QuickBooks token: Error: Token refresh failed: Request failed with status code 400
+    at QuickBooksService.refreshAccessToken (/home/runner/workspace/server/services/quickbooks-service.ts:258:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async QuickBooksService.getValidAccessToken (/home/runner/workspace/server/services/quickbooks-service.ts:359:35)
+    at async Timeout.checkAndRefreshTokens (/home/runner/workspace/server/services/sync-scheduler.ts:452:13)
+❌ Token refresh failed for user dev_user_123: Error: QuickBooks token expired and refresh failed
+    at QuickBooksService.getValidAccessToken (/home/runner/workspace/server/services/quickbooks-service.ts:375:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Timeout.checkAndRefreshTokens (/home/runner/workspace/server/services/sync-scheduler.ts:452:13)
+9:37:19 PM [express] GET /api/integrations 304 in 34ms :: [{"id":"68128a12-5458-4554-a8d5-d0696c3136…
+9:37:19 PM [express] GET /api/calendar/events 304 in 1ms :: []
+9:37:19 PM [express] GET /api/sync/status 200 in 0ms :: {"isRunning":true,"activeIntervals":1,"sched…
+9:37:19 PM [express] GET /api/customers 304 in 70ms :: [{"id":"5467401b-b778-4f98-be25-d91a7433cb41"…
+9:37:49 PM [express] GET /api/sync/status 200 in 1ms :: {"isRunning":true,"activeIntervals":1,"sched…
+9:37:49 PM [express] GET /api/sync/status 200 in 1ms :: {"isRunning":true,"activeIntervals":1,"sched…

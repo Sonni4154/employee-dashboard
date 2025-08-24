@@ -313,6 +313,12 @@ export class QuickBooksService {
     }
     
     if (!integration.accessToken && integration.refreshToken) {
+      // Skip refresh attempts for test tokens or clearly invalid tokens
+      if (integration.refreshToken.startsWith('test_')) {
+        console.log('⚠️ Test refresh token detected - re-authorization required');
+        throw new Error('QuickBooks re-authorization required (test token)');
+      }
+      
       console.log('No access token found, attempting refresh...');
       try {
         const refreshedTokens = await this.refreshAccessToken(integration.refreshToken);
@@ -355,6 +361,12 @@ export class QuickBooksService {
       
       // If 401 or connection issues, try to refresh token
       if (integration.refreshToken) {
+        // Skip refresh attempts for test tokens
+        if (integration.refreshToken.startsWith('test_')) {
+          console.log('⚠️ Test refresh token detected - re-authorization required');
+          throw new Error('QuickBooks re-authorization required (test token)');
+        }
+        
         try {
           const refreshedTokens = await this.refreshAccessToken(integration.refreshToken);
           
