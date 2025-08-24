@@ -1,0 +1,345 @@
+// Database Debug Implementation
+// Add these routes to help debug token storage issues
+
+import { db } from './db';
+import { integrations } from '../shared/schema';
+import { eq } from 'drizzle-orm';
+
+// Debug endpoint to test database operations
+app.post('/api/debug/database/test', async (req, res) => {
+  try {
+    console.log('🔧 Testing database connection and operations...');
+    
+    // 1. Test basic connection
+    console.log('📡 Testing database connection...');
+    const connectionTest = await db.execute('SELECT NOW() as current_time, version() as db_version');
+    console.log('✅ Database connection successful:', connectionTest[0]);
+
+    // 2. Test integrations table exists
+    console.log('📋 Checking integrations table structure...');
+    const tableInfo = await db.execute(`
+      SELECT column_name, data_type, is_nullable, column_default 
+      FROM information_schema.columns 
+      WHERE table_name = 'integrations' 
+      ORDER BY ordinal_position
+    `);
+    console.log('📊 Table structure:', tableInfo);
+
+    // 3. Test insert operation
+    console.log('💾 Testing insert operation...');
+    const testData = {
+      provider: 'test_provider_' + Date.now(),
+      accessToken: 'test_access_token_' + Math.random(),
+      refreshToken: 'test_refresh_token_' + Math.random(),
+      realmId: '123456789',
+      expiresAt: new Date(Date.now() + 3600000), // 1 hour from now
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const insertResult = await db.insert(integrations).values(testData).returning();
+    console.log('✅ Insert successful:', insertResult);
+
+    // 4. Test select operation
+    console.log('🔍 Testing select operation...');
+    const selectResult = await db.select()
+      .from(integrations)
+      .where(eq(integrations.provider, testData.provider));
+    console.log('✅ Select successful:', selectResult);
+
+    // 5. Test update operation
+    console.log('🔄 Testing update operation...');
+    const updateResult = await db.update(integrations)
+      .set({ 
+        accessToken: 'updated_token_' + Math.random(),
+        updatedAt: new Date()
+      })
+      .where(eq(integrations.provider, testData.provider))
+      .returning();
+    console.log('✅ Update successful:', updateResult);
+
+    // 6. Clean up test data
+    console.log('🧹 Cleaning up test data...');
+    await db.delete(integrations).where(eq(integrations.provider, testData.provider));
+    console.log('✅ Cleanup successful');
+
+    res.json({
+      success: true,
+      message: 'All database operations successful',
+      tests: {
+        connection: true,
+        tableStructure: tableInfo.length > 0,
+        insert: insertResult.length > 0,
+        select: selectResult.length > 0,
+        update: updateResult.length > 0,
+        delete: true
+      },
+      tableColumns: tableInfo.map(col => ({
+        name: col.column_name,
+        type: col.data_type,
+        nullable: col.is_nullable,
+        default: col.column_default
+      }))
+    });
+
+  } catch (error) {
+    console.error('💥 Database test failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: error.stack,
+      details: 'Check server logs for full error details'
+    });
+  }
+});
+
+// Enhanced QuickBooks callback with comprehensive database logging
+app.get('/quickbooks/callback', async (req, res) => {
+  try {
+    console.log('🔴 QuickBooks callback received');
+    
+    // ... existing OAuth validation code ...
+    
+    const { code, realmId, state } = req.query;
+    
+    // Validate parameters (same as before)
+    if (!code || !realmId) {
+      console.error('❌ Missing required parameters');
+      return res.redirect('/settings?qb_error=Missing%20OAuth%20parameters');
+    }
+
+    // Exchange code for tokens (same as before)
+    console.log('🔄 Exchanging authorization code for tokens...');
+    const credentials = Buffer.from(`${QBO_CLIENT_ID}:${QBO_CLIENT_SECRET}`).toString('base64');
+    const tokenResponse = await fetch('https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+        'Authorization': `Basic ${credentials}`
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: code as string,
+        redirect_uri: QBO_REDIRECT_URI
+      })
+    });
+
+    const tokenData = await tokenResponse.json();
+    
+    if (!tokenResponse.ok) {
+      console.error('❌ Token exchange failed:', tokenData);
+      return res.redirect('/settings?qb_error=Token%20exchange%20failed');
+    }
+
+    console.log('✅ Token exchange successful');
+
+    // ENHANCED DATABASE STORAGE WITH DEBUGGING
+    const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
+    const integrationData = {
+      provider: 'quickbooks',
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      realmId: realmId as string,
+      expiresAt: expiresAt,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    console.log('💾 Attempting to save QuickBooks integration...');
+    console.log('📋 Data to save:', {
+      provider: integrationData.provider,
+      hasAccessToken: !!integrationData.accessToken,
+      accessTokenLength: integrationData.accessToken?.length,
+      hasRefreshToken: !!integrationData.refreshToken,
+      refreshTokenLength: integrationData.refreshToken?.length,
+      realmId: integrationData.realmId,
+      expiresAt: integrationData.expiresAt,
+      isActive: integrationData.isActive
+    });
+
+    try {
+      // First, check if integration already exists
+      console.log('🔍 Checking for existing QuickBooks integration...');
+      const existingIntegration = await db.select()
+        .from(integrations)
+        .where(eq(integrations.provider, 'quickbooks'))
+        .limit(1);
+
+      console.log('📊 Existing integration check:', {
+        found: existingIntegration.length > 0,
+        existingId: existingIntegration[0]?.id || null
+      });
+
+      let result;
+      if (existingIntegration.length > 0) {
+        // Update existing integration
+        console.log('🔄 Updating existing integration...');
+        result = await db.update(integrations)
+          .set({
+            accessToken: integrationData.accessToken,
+            refreshToken: integrationData.refreshToken,
+            realmId: integrationData.realmId,
+            expiresAt: integrationData.expiresAt,
+            isActive: integrationData.isActive,
+            updatedAt: integrationData.updatedAt
+          })
+          .where(eq(integrations.provider, 'quickbooks'))
+          .returning();
+        
+        console.log('✅ Update result:', result);
+      } else {
+        // Insert new integration
+        console.log('➕ Creating new integration...');
+        result = await db.insert(integrations)
+          .values(integrationData)
+          .returning();
+        
+        console.log('✅ Insert result:', result);
+      }
+
+      // Verify the save was successful
+      console.log('🔍 Verifying saved data...');
+      const savedIntegration = await db.select()
+        .from(integrations)
+        .where(eq(integrations.provider, 'quickbooks'))
+        .limit(1);
+
+      if (savedIntegration.length === 0) {
+        throw new Error('Integration was not saved - verification failed');
+      }
+
+      console.log('✅ Database save verification successful:', {
+        id: savedIntegration[0].id,
+        provider: savedIntegration[0].provider,
+        hasAccessToken: !!savedIntegration[0].accessToken,
+        hasRefreshToken: !!savedIntegration[0].refreshToken,
+        realmId: savedIntegration[0].realmId,
+        isActive: savedIntegration[0].isActive,
+        expiresAt: savedIntegration[0].expiresAt
+      });
+
+      console.log('🎉 QuickBooks integration saved successfully');
+      res.redirect('/settings?qb=connected&success=QuickBooks%20connected%20successfully');
+
+    } catch (dbError) {
+      console.error('💥 Database save error:', {
+        error: dbError.message,
+        stack: dbError.stack,
+        data: integrationData
+      });
+      
+      // Try to get more details about the error
+      if (dbError.code) {
+        console.error('🔍 Database error details:', {
+          code: dbError.code,
+          detail: dbError.detail,
+          hint: dbError.hint,
+          constraint: dbError.constraint
+        });
+      }
+      
+      return res.redirect(`/settings?qb_error=${encodeURIComponent('Database save failed: ' + dbError.message)}`);
+    }
+
+  } catch (error) {
+    console.error('💥 General callback error:', error);
+    res.redirect(`/settings?qb_error=${encodeURIComponent('Callback failed: ' + error.message)}`);
+  }
+});
+
+// Debug endpoint to check current integrations
+app.get('/api/debug/integrations', async (req, res) => {
+  try {
+    console.log('🔍 Fetching all integrations for debug...');
+    
+    const allIntegrations = await db.select().from(integrations);
+    
+    const debugData = allIntegrations.map(integration => ({
+      id: integration.id,
+      provider: integration.provider,
+      hasAccessToken: !!integration.accessToken,
+      accessTokenPreview: integration.accessToken?.substring(0, 10) + '...',
+      hasRefreshToken: !!integration.refreshToken,
+      refreshTokenPreview: integration.refreshToken?.substring(0, 10) + '...',
+      realmId: integration.realmId,
+      expiresAt: integration.expiresAt,
+      isActive: integration.isActive,
+      createdAt: integration.createdAt,
+      updatedAt: integration.updatedAt,
+      lastSyncAt: integration.lastSyncAt
+    }));
+
+    res.json({
+      success: true,
+      count: allIntegrations.length,
+      integrations: debugData
+    });
+
+  } catch (error) {
+    console.error('💥 Debug integrations error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Debug endpoint to manually save test integration
+app.post('/api/debug/integrations/test-save', async (req, res) => {
+  try {
+    const testIntegration = {
+      provider: 'quickbooks_manual_test',
+      accessToken: 'manual_test_access_token_' + Date.now(),
+      refreshToken: 'manual_test_refresh_token_' + Date.now(),
+      realmId: '999999999',
+      expiresAt: new Date(Date.now() + 3600000),
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    console.log('🧪 Manual test save attempt:', testIntegration);
+
+    const result = await db.insert(integrations)
+      .values(testIntegration)
+      .returning();
+
+    console.log('✅ Manual test save successful:', result);
+
+    res.json({
+      success: true,
+      message: 'Test integration saved successfully',
+      result: result[0]
+    });
+
+  } catch (error) {
+    console.error('💥 Manual test save failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
+// Debug endpoint to test environment variables
+app.get('/api/debug/environment', (req, res) => {
+  res.json({
+    success: true,
+    environment: {
+      NODE_ENV: process.env.NODE_ENV,
+      hasDatabase: !!process.env.DATABASE_URL,
+      databaseUrlLength: process.env.DATABASE_URL?.length || 0,
+      hasQBClientId: !!process.env.QBO_CLIENT_ID,
+      qbClientIdPreview: process.env.QBO_CLIENT_ID?.substring(0, 8) + '...',
+      hasQBClientSecret: !!process.env.QBO_CLIENT_SECRET,
+      qbClientSecretLength: process.env.QBO_CLIENT_SECRET?.length || 0,
+      hasQBRedirectUri: !!process.env.QBO_REDIRECT_URI,
+      qbRedirectUri: process.env.QBO_REDIRECT_URI,
+      hasSessionSecret: !!process.env.SESSION_SECRET
+    }
+  });
+});

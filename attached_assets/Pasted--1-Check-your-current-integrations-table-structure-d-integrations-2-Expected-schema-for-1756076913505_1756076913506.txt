@@ -1,0 +1,67 @@
+-- 1. Check your current integrations table structure
+\d integrations;
+
+-- 2. Expected schema for QuickBooks OAuth storage
+-- If any columns are missing, add them:
+
+-- Basic integration columns (you probably have these)
+ALTER TABLE integrations ADD COLUMN IF NOT EXISTS id SERIAL PRIMARY KEY;
+ALTER TABLE integrations ADD COLUMN IF NOT EXISTS provider VARCHAR(50) NOT NULL;
+ALTER TABLE integrations ADD COLUMN IF NOT EXISTS user_id INTEGER; -- if you link to users
+ALTER TABLE integrations ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+ALTER TABLE integrations ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
+ALTER TABLE integrations ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
+
+-- QuickBooks-specific columns (you probably need to add these)
+ALTER TABLE integrations ADD COLUMN IF NOT EXISTS access_token TEXT;
+ALTER TABLE integrations ADD COLUMN IF NOT EXISTS refresh_token TEXT;
+ALTER TABLE integrations ADD COLUMN IF NOT EXISTS realm_id VARCHAR(255); -- QuickBooks Company ID
+ALTER TABLE integrations ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;
+ALTER TABLE integrations ADD COLUMN IF NOT EXISTS last_sync_at TIMESTAMP;
+
+-- 3. Create unique constraint to prevent duplicates
+CREATE UNIQUE INDEX IF NOT EXISTS idx_integrations_provider_user 
+ON integrations(provider, COALESCE(user_id, 0));
+
+-- Or if no user_id:
+CREATE UNIQUE INDEX IF NOT EXISTS idx_integrations_provider 
+ON integrations(provider);
+
+-- 4. Check the final schema
+\d integrations;
+
+-- 5. Test insert (this should work without errors)
+INSERT INTO integrations (
+    provider, 
+    access_token, 
+    refresh_token, 
+    realm_id, 
+    expires_at, 
+    is_active
+) VALUES (
+    'quickbooks_test', 
+    'test_access_token', 
+    'test_refresh_token', 
+    '123456789', 
+    NOW() + INTERVAL '1 hour', 
+    true
+) ON CONFLICT (provider) DO UPDATE SET
+    access_token = EXCLUDED.access_token,
+    updated_at = NOW();
+
+-- 6. Verify the test insert worked
+SELECT * FROM integrations WHERE provider = 'quickbooks_test';
+
+-- 7. Clean up test data
+DELETE FROM integrations WHERE provider = 'quickbooks_test';
+
+-- 8. Check for any constraints that might block inserts
+SELECT conname, contype, confupdtype, confdeltype, confmatchtype 
+FROM pg_constraint 
+WHERE conrelid = 'integrations'::regclass;
+
+-- 9. Check table permissions
+SELECT tablename, tableowner, hasinsert, hasupdate, hasdelete, hasselect 
+FROM pg_tables t 
+JOIN pg_user u ON t.tableowner = u.usename 
+WHERE tablename = 'integrations';
