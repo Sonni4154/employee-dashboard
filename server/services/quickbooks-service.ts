@@ -104,10 +104,10 @@ export class QuickBooksService {
     const scope = [OAuthClient.scopes.Accounting];
     const state = Buffer.from(JSON.stringify({ userId, timestamp: Date.now() })).toString('base64');
     
-    // Always use production redirect URI
-    const productionRedirectUri = process.env.QBO_REDIRECT_URI || 'https://www.wemakemarin.com/quickbooks/callback';
+    // Always use production redirect URI - hardcoded to ensure consistency
+    const productionRedirectUri = 'https://www.wemakemarin.com/quickbooks/callback';
     
-    // Create a temporary OAuth client with the correct redirect URI
+    // Create a clean OAuth client without any extra parameters
     const tempOAuthClient = new OAuthClient({
       clientId: this.clientId,
       clientSecret: this.clientSecret,
@@ -115,10 +115,18 @@ export class QuickBooksService {
       redirectUri: productionRedirectUri
     });
     
-    return tempOAuthClient.authorizeUri({
+    // Generate clean authorization URL
+    let authUrl = tempOAuthClient.authorizeUri({
       scope,
       state
     });
+    
+    // Remove any pluginId parameter that might be automatically added
+    if (authUrl.includes('pluginId')) {
+      authUrl = authUrl.replace(/[&?]pluginId=[^&]*&?/, '').replace(/[&?]$/, '');
+    }
+    
+    return authUrl;
   }
 
   // Refresh tokens using refresh token

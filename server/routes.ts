@@ -1121,13 +1121,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const state = crypto.randomBytes(32).toString('hex');
       const scopes = 'com.intuit.quickbooks.accounting';
       
-      // Build authorization URL
+      // Build clean authorization URL without pluginId or extra parameters
       const authUrl = new URL('https://appcenter.intuit.com/connect/oauth2');
       authUrl.searchParams.set('client_id', QBO_CLIENT_ID);
       authUrl.searchParams.set('scope', scopes);
-      authUrl.searchParams.set('redirect_uri', QBO_REDIRECT_URI);
+      authUrl.searchParams.set('redirect_uri', 'https://www.wemakemarin.com/quickbooks/callback');
       authUrl.searchParams.set('response_type', 'code');
       authUrl.searchParams.set('state', state);
+      
+      // Explicitly ensure no pluginId parameter is added
+      authUrl.searchParams.delete('pluginId');
 
       // Store state in session for verification
       if (req.session) {
@@ -1158,7 +1161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = 'dev_user_123';
     
     // Always use production redirect URI to match QuickBooks app configuration
-    const redirectUri = process.env.QBO_REDIRECT_URI || 'https://www.wemakemarin.com/quickbooks/callback';
+    const redirectUri = 'https://www.wemakemarin.com/quickbooks/callback';
     console.log('🔧 Using redirect URI:', redirectUri);
     
     const authUrl = quickbooksService.getAuthorizationUrl(userId, redirectUri);
