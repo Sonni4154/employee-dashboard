@@ -217,8 +217,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Trigger QuickBooks sync
       console.log('🔄 Starting QuickBooks sync...');
       
-      const simulateConnection = process.env.NODE_ENV === 'development';
-      if (simulateConnection) {
+      // Check if we have valid QuickBooks integration instead of just dev mode
+      const integration = await storage.getIntegration(userId, 'quickbooks');
+      const hasValidToken = integration?.isActive && integration?.accessToken && !integration.accessToken.startsWith('test_');
+      
+      if (!hasValidToken) {
         // Simulate sync for development
         console.log('📊 Simulating QuickBooks data sync...');
         const startTime = Date.now();
@@ -229,10 +232,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Record sync operation
         console.log(`📊 Sync completed: ${duration}ms, ${dataVolume} records`);
         
-        console.log('✅ QuickBooks sync simulation completed');
+        console.log('✅ QuickBooks sync simulation completed (no valid token)');
         
         res.json({ 
-          message: "QuickBooks sync completed successfully (simulated)",
+          message: "QuickBooks sync completed successfully (simulated - no valid token)",
           status: "success",
           timestamp: new Date().toISOString(),
           syncedData: {
@@ -244,6 +247,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           dataVolume
         });
       } else {
+        // Use real QuickBooks API since we have valid token
+        console.log('🔄 Using real QuickBooks API for sync...');
         const startTime = Date.now();
         try {
           await quickbooksService.fullSync(userId);
