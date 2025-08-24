@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, Settings as SettingsIcon, ExternalLink, Database, FileSpreadsheet, Calendar, AlertCircle, CheckCircle, Plus, Trash2 } from "lucide-react";
+import { RefreshCw, Settings as SettingsIcon, ExternalLink, Database, FileSpreadsheet, Calendar, AlertCircle, CheckCircle, Plus, Trash2, Terminal, Link2, Activity, BarChart3 } from "lucide-react";
 import { SiQuickbooks, SiGoogle, SiMicrosoft, SiPostgresql } from "react-icons/si";
 import UnifiedSyncStatus from "@/components/sync/unified-sync-status";
 import { apiRequest } from "@/lib/queryClient";
@@ -212,10 +212,11 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="integrations" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
           <TabsTrigger value="database">Database Connections</TabsTrigger>
           <TabsTrigger value="sync">Sync Settings</TabsTrigger>
+          <TabsTrigger value="debug">Debug & API</TabsTrigger>
         </TabsList>
 
         {/* Integrations Tab */}
@@ -598,6 +599,293 @@ export default function Settings() {
                   )}
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Debug & API Tab */}
+        <TabsContent value="debug" className="space-y-6">
+          <div className="flex items-center gap-3 mb-6">
+            <Terminal className="w-5 h-5" />
+            <h2 className="text-lg font-semibold">Debug & API Endpoints</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* QuickBooks Debug Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <SiQuickbooks className="w-5 h-5 text-blue-600" />
+                  QuickBooks Debug
+                </CardTitle>
+                <CardDescription>QuickBooks integration status and debugging tools</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('/api/integrations/quickbooks/status', '_blank')}
+                >
+                  <Activity className="w-4 h-4 mr-2" />
+                  Connection Status
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('/api/quickbooks/dev-status', '_blank')}
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Development Status
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('/api/integrations/quickbooks/debug', '_blank')}
+                >
+                  <Terminal className="w-4 h-4 mr-2" />
+                  Debug Info
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('/api/quickbooks/test', '_blank')}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Test Connection
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('/quickbooks/dev-auth', '_blank')}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Auth Page
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* System Health Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-green-600" />
+                  System Health
+                </CardTitle>
+                <CardDescription>Database and system health checks</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('/api/database/test', '_blank')}
+                >
+                  <Database className="w-4 h-4 mr-2" />
+                  Database Test
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('/api/health', '_blank')}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Health Check
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('/api/version', '_blank')}
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Version Info
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('/api/auth/user', '_blank')}
+                >
+                  <Activity className="w-4 h-4 mr-2" />
+                  User Info
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Sync & Data Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5 text-purple-600" />
+                  Sync & Data Management
+                </CardTitle>
+                <CardDescription>Manual sync triggers and data management</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('/api/sync/status', '_blank')}
+                >
+                  <Activity className="w-4 h-4 mr-2" />
+                  Sync Status
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('/api/sync/recommendations', '_blank')}
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Sync Recommendations
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    if (confirm('Trigger QuickBooks sync now?')) {
+                      window.open('/api/quickbooks/trigger-sync', '_blank');
+                    }
+                  }}
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Trigger QB Sync
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('/api/integrations', '_blank')}
+                >
+                  <Link2 className="w-4 h-4 mr-2" />
+                  All Integrations
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Data Endpoints Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="w-5 h-5 text-orange-600" />
+                  Data Endpoints
+                </CardTitle>
+                <CardDescription>Access raw data endpoints for debugging</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('/api/customers', '_blank')}
+                >
+                  <Database className="w-4 h-4 mr-2" />
+                  Customers Data
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('/api/products', '_blank')}
+                >
+                  <Database className="w-4 h-4 mr-2" />
+                  Products Data
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('/api/invoices', '_blank')}
+                >
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Invoices Data
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('/api/activity', '_blank')}
+                >
+                  <Activity className="w-4 h-4 mr-2" />
+                  Activity Logs
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('/api/clock/status', '_blank')}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Clock Status
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Actions Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Terminal className="w-5 h-5 text-gray-600" />
+                Quick Actions & Shell Access
+              </CardTitle>
+              <CardDescription>Development tools and direct access</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open('/?view=shell', '_blank')}
+                >
+                  <Terminal className="w-4 h-4 mr-2" />
+                  Shell
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open('/api/quickbooks/initial-auth', '_blank')}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Initial Auth
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open('/', '_blank')}
+                >
+                  <Link2 className="w-4 h-4 mr-2" />
+                  Home
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.origin);
+                    toast({ title: "Base URL copied to clipboard" });
+                  }}
+                >
+                  <Link2 className="w-4 h-4 mr-2" />
+                  Copy Base URL
+                </Button>
+              </div>
+              
+              <Alert className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Server Status:</strong> Running on port 5001 (fallback) • 
+                  <strong>Environment:</strong> {process.env.NODE_ENV || 'development'} • 
+                  <strong>Base URL:</strong> {window.location.origin}
+                </AlertDescription>
+              </Alert>
             </CardContent>
           </Card>
         </TabsContent>

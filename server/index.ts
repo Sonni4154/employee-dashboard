@@ -84,11 +84,25 @@ app.use((req, res, next) => {
   server.listen({
     port,
     host: "0.0.0.0",
-    reusePort: true,
   }, async () => {
     log(`serving on port ${port}`);
     
     // Initialize sync scheduler for production operations
     log('Server ready - Production sync enabled');
+  }).on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${port} is already in use. Trying port ${port + 1}...`);
+      const newPort = port + 1;
+      server.listen({
+        port: newPort,
+        host: "0.0.0.0",
+      }, () => {
+        log(`serving on port ${newPort} (fallback port)`);
+        log('Server ready - Production sync enabled');
+      });
+    } else {
+      console.error('Server error:', err);
+      process.exit(1);
+    }
   });
 })();
