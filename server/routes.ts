@@ -22,9 +22,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
   
   // START SYNC SCHEDULER IMMEDIATELY FOR PRODUCTION
-  console.log('🚀 Starting sync scheduler on server boot...');
-  syncScheduler.start();
-  console.log('✅ Sync scheduler enabled for production');
+  // console.log('🚀 Starting sync scheduler on server boot...');
+  // syncScheduler.start();
+  // console.log('✅ Sync scheduler enabled for production');
 
   // Auth routes - Temporary working state
   app.get('/api/auth/user', async (req: any, res) => {
@@ -598,7 +598,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         connected: integration.isActive, // For backward compatibility
         syncStatus: integration.isActive ? 'success' : 'not_connected',
         lastSyncAt: integration.lastSyncAt?.toISOString() || null,
-        expiresAt: integration.expiresAt?.toISOString() || null,
+        expiresAt: null, // Not available in schema
         realmId: integration.realmId,
         created_at: integration.createdAt?.toISOString() || new Date().toISOString()
       }));
@@ -719,8 +719,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateIntegration(integration.id, {
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
-        expiresAt: new Date(Date.now() + (tokens.expires_in * 1000)),
-        updatedAt: new Date(),
         isActive: true
       });
 
@@ -748,7 +746,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const quickbooksService = new QuickBooksService();
       const companyInfo = await quickbooksService.getCompanyInfo(
         integration.accessToken, 
-        integration.realmId
+        integration.realmId || ''
       );
       
       res.json({ 
@@ -772,9 +770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateIntegration(integration.id, {
           isActive: false,
           accessToken: null,
-          refreshToken: null,
-          expiresAt: null,
-          updatedAt: new Date()
+          refreshToken: null
         });
       }
       
@@ -996,10 +992,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Log the connection activity
         await storage.createActivityLog({
           userId,
-          action: 'quickbooks_connected',
-          details: 'QuickBooks account successfully connected',
-          metadata: { companyId: String(realmId), provider: 'quickbooks' },
-          createdAt: new Date()
+          type: 'quickbooks_connected',
+          description: 'QuickBooks account successfully connected',
+          metadata: { companyId: String(realmId), provider: 'quickbooks' }
         });
         
       } catch (dbError) {
