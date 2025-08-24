@@ -69,7 +69,6 @@ const adminNavigationItems = [
       { path: "/productivity", label: "Productivity Dashboard", icon: BarChart3 },
       { path: "/collaboration", label: "Collaboration", icon: MessageSquare },
       { path: "/data-import", label: "Data Import", icon: Upload },
-      { path: "/quickbooks-auth", label: "QuickBooks Auth", icon: Settings },
       { path: "/settings", label: "Settings", icon: Settings },
       { path: "/workflows", label: "Workflows", icon: Zap },
     ]

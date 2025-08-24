@@ -238,62 +238,150 @@ export default function Settings() {
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
           <TabsTrigger value="database">Database Connections</TabsTrigger>
-          <TabsTrigger value="sync">Sync Settings</TabsTrigger>
           <TabsTrigger value="debug">Debug & API</TabsTrigger>
         </TabsList>
 
         {/* Integrations Tab */}
         <TabsContent value="integrations" className="space-y-6">
-          {/* QuickBooks Integration */}
+          {/* QuickBooks Integration with Step-by-Step Authorization */}
           <Card>
-            <CardHeader className="flex flex-row items-center space-y-0 pb-2">
-              <div className="flex items-center space-x-2">
-                <SiQuickbooks className="w-8 h-8 text-blue-600" />
-                <div>
-                  <CardTitle>QuickBooks Online</CardTitle>
-                  <CardDescription>Sync customers, products, and invoices</CardDescription>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <SiQuickbooks className="w-8 h-8 text-blue-600" />
+                  <div>
+                    <CardTitle>QuickBooks Online Integration</CardTitle>
+                    <CardDescription>Complete authorization flow with status indicators</CardDescription>
+                  </div>
                 </div>
-              </div>
-              <div className="ml-auto">
                 <Badge variant={getIntegrationStatus('quickbooks') === 'Connected' ? 'default' : 'secondary'}>
                   {getIntegrationStatus('quickbooks')}
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Manage your QuickBooks Online connection and sync settings
-                  </p>
-                  <div className="flex gap-2">
-                    {getIntegrationStatus('quickbooks') === 'Connected' && (
-                      <Button
-                        onClick={() => initialDataPull.mutate()}
-                        disabled={initialDataPull.isPending}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <Database className="w-4 h-4 mr-2" />
-                        {initialDataPull.isPending ? "Pulling Data..." : "Pull Initial Data"}
-                      </Button>
-                    )}
+            <CardContent className="space-y-6">
+              {/* Step-by-Step Authorization Flow */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">Authorization Steps</h4>
+                
+                {/* Step 1: OAuth Configuration */}
+                <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
+                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">1. OAuth Configuration</p>
+                    <p className="text-xs text-muted-foreground">Environment and credentials configured</p>
+                  </div>
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                </div>
+                
+                {/* Step 2: Authorization Request */}
+                <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
+                  <div className={`w-2 h-2 rounded-full ${getIntegrationStatus('quickbooks') !== 'Not Connected' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">2. Authorization Request</p>
+                    <p className="text-xs text-muted-foreground">Redirect to QuickBooks for permission</p>
+                  </div>
+                  {getIntegrationStatus('quickbooks') !== 'Not Connected' ? 
+                    <CheckCircle className="w-4 h-4 text-green-500" /> : 
+                    <AlertCircle className="w-4 h-4 text-gray-400" />
+                  }
+                </div>
+                
+                {/* Step 3: Callback Processing */}
+                <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
+                  <div className={`w-2 h-2 rounded-full ${getIntegrationStatus('quickbooks') === 'Connected' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">3. Callback Processing</p>
+                    <p className="text-xs text-muted-foreground">Exchange authorization code for tokens</p>
+                  </div>
+                  {getIntegrationStatus('quickbooks') === 'Connected' ? 
+                    <CheckCircle className="w-4 h-4 text-green-500" /> : 
+                    <AlertCircle className="w-4 h-4 text-gray-400" />
+                  }
+                </div>
+                
+                {/* Step 4: Token Management */}
+                <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
+                  <div className={`w-2 h-2 rounded-full ${getIntegrationStatus('quickbooks') === 'Connected' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">4. Token Management</p>
+                    <p className="text-xs text-muted-foreground">Access & refresh tokens stored securely</p>
+                  </div>
+                  {getIntegrationStatus('quickbooks') === 'Connected' ? 
+                    <CheckCircle className="w-4 h-4 text-green-500" /> : 
+                    <AlertCircle className="w-4 h-4 text-gray-400" />
+                  }
+                </div>
+                
+                {/* Step 5: Connection Test */}
+                <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
+                  <div className={`w-2 h-2 rounded-full ${getIntegrationStatus('quickbooks') === 'Connected' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">5. Connection Test</p>
+                    <p className="text-xs text-muted-foreground">Verify API access and company info</p>
+                  </div>
+                  {getIntegrationStatus('quickbooks') === 'Connected' ? 
+                    <CheckCircle className="w-4 h-4 text-green-500" /> : 
+                    <AlertCircle className="w-4 h-4 text-gray-400" />
+                  }
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-4 border-t space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    onClick={() => {
+                      const baseUrl = `${window.location.protocol}//${window.location.host}`;
+                      window.location.href = `${baseUrl}/quickbooks/connect`;
+                    }}
+                    variant="default"
+                    size="sm"
+                    className="w-full"
+                  >
+                    <SiQuickbooks className="w-4 h-4 mr-2" />
+                    {getIntegrationStatus('quickbooks') === 'Connected' ? 'Re-authorize' : 'Start Authorization'}
+                  </Button>
+                  
+                  {getIntegrationStatus('quickbooks') === 'Connected' && (
                     <Button
-                      onClick={() => {
-                        // Use the direct backend port for OAuth to avoid frontend router issues
-                        // Use current domain without port for QuickBooks OAuth
-                        const baseUrl = `${window.location.protocol}//${window.location.host}`;
-                        window.open(`${baseUrl}/quickbooks/connect`, '_blank');
-                      }}
-                      variant="default"
+                      onClick={() => makeApiCall('/api/quickbooks/test')}
+                      variant="outline"
                       size="sm"
+                      disabled={isLoading}
+                      className="w-full"
                     >
-                      <SiQuickbooks className="w-4 h-4 mr-2" />
-                      {getIntegrationStatus('quickbooks') === 'Connected' ? 'Re-authorize' : 'Connect'} QuickBooks
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Test Connection
+                    </Button>
+                  )}
+                </div>
+                
+                {getIntegrationStatus('quickbooks') === 'Connected' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      onClick={() => makeApiCall('/api/quickbooks/refresh', 'POST')}
+                      variant="outline"
+                      size="sm"
+                      disabled={isLoading}
+                      className="w-full"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Refresh Tokens
+                    </Button>
+                    
+                    <Button
+                      onClick={() => initialDataPull.mutate()}
+                      disabled={initialDataPull.isPending}
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                    >
+                      <Database className="w-4 h-4 mr-2" />
+                      {initialDataPull.isPending ? "Pulling..." : "Pull Data"}
                     </Button>
                   </div>
-                </div>
-                <UnifiedSyncStatus variant="button" showLabel={true} size="sm" />
+                )}
               </div>
             </CardContent>
           </Card>
@@ -589,42 +677,6 @@ export default function Settings() {
         </TabsContent>
 
         {/* Sync Settings Tab */}
-        <TabsContent value="sync" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Synchronization Status</CardTitle>
-              <CardDescription>Monitor and control data synchronization across all integrations</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {syncStatus && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span>Automated Sync</span>
-                    <Badge variant={syncStatus.automated ? 'default' : 'secondary'}>
-                      {syncStatus.automated ? 'Enabled' : 'Disabled'}
-                    </Badge>
-                  </div>
-                  {syncStatus.lastSync && (
-                    <div className="flex items-center justify-between">
-                      <span>Last Sync</span>
-                      <span className="text-sm text-muted-foreground">
-                        {format(new Date(syncStatus.lastSync), 'PPp')}
-                      </span>
-                    </div>
-                  )}
-                  {syncStatus.nextSync && (
-                    <div className="flex items-center justify-between">
-                      <span>Next Sync</span>
-                      <span className="text-sm text-muted-foreground">
-                        {format(new Date(syncStatus.nextSync), 'PPp')}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* Debug & API Tab */}
         <TabsContent value="debug" className="space-y-6">
@@ -741,86 +793,6 @@ export default function Settings() {
               </CardContent>
             </Card>
 
-            {/* QuickBooks Auth & Management Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <SiQuickbooks className="w-5 h-5 text-blue-600" />
-                  QuickBooks Authentication & Sync
-                </CardTitle>
-                <CardDescription>Manage QuickBooks connection and sync operations</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <div>
-                    <p className="font-medium">Connection Status</p>
-                    <p className="text-sm text-muted-foreground">
-                      {getIntegrationStatus('quickbooks')}
-                    </p>
-                  </div>
-                  <Badge variant={getIntegrationStatus('quickbooks') === 'Connected' ? 'default' : 'secondary'}>
-                    {getIntegrationStatus('quickbooks')}
-                  </Badge>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const baseUrl = `${window.location.protocol}//${window.location.host}`;
-                      window.open(`${baseUrl}/quickbooks/connect`, '_blank');
-                    }}
-                  >
-                    <SiQuickbooks className="w-4 h-4 mr-2" />
-                    {getIntegrationStatus('quickbooks') === 'Connected' ? 'Re-authorize' : 'Connect'}
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => makeApiCall('/api/sync/status')}
-                    disabled={isLoading}
-                  >
-                    <Activity className="w-4 h-4 mr-2" />
-                    Check Status
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => makeApiCall('/api/integrations/quickbooks/sync', 'POST')}
-                    disabled={isLoading}
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Trigger Sync
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => makeApiCall('/api/integrations')}
-                    disabled={isLoading}
-                  >
-                    <Link2 className="w-4 h-4 mr-2" />
-                    All Integrations
-                  </Button>
-                </div>
-                
-                {getIntegrationStatus('quickbooks') === 'Connected' && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => makeApiCall('/api/integrations/quickbooks/initial-sync', 'POST')}
-                    disabled={isLoading}
-                  >
-                    <Database className="w-4 h-4 mr-2" />
-                    Pull Initial Data
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
 
             {/* Data Endpoints Section */}
             <Card>
