@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RefreshCw, Settings as SettingsIcon, ExternalLink, Database, FileSpreadsheet, Calendar, AlertCircle, CheckCircle, Plus, Trash2, Terminal, Link2, Activity, BarChart3 } from "lucide-react";
-import { SiQuickbooks, SiGoogle, SiMicrosoft, SiPostgresql } from "react-icons/si";
+import { SiQuickbooks, SiGoogle, SiPostgresql } from "react-icons/si";
 import UnifiedSyncStatus from "@/components/sync/unified-sync-status";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -38,6 +38,8 @@ export default function Settings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showAddDatabase, setShowAddDatabase] = useState(false);
+  const [apiResponse, setApiResponse] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Check for QuickBooks connection success in URL params
   useEffect(() => {
@@ -57,18 +59,39 @@ export default function Settings() {
   }, [toast]);
 
   // Queries
-  const { data: integrations = [], isLoading } = useQuery({
+  const { data: integrations = [], isLoading: integrationsLoading } = useQuery<any[]>({
     queryKey: ["/api/integrations"]
   });
 
-  const { data: databaseConnections = [], isLoading: dbLoading } = useQuery({
+  const { data: databaseConnections = [], isLoading: dbLoading } = useQuery<any[]>({
     queryKey: ["/api/database-connections"]
   });
 
-  const { data: syncStatus } = useQuery({
+  const { data: syncStatus } = useQuery<any>({
     queryKey: ["/api/sync/status"],
     refetchInterval: 30000 // Refresh every 30 seconds
   });
+
+  // Helper function to make API calls and show results
+  const makeApiCall = async (endpoint: string, method: 'GET' | 'POST' = 'GET', body?: any) => {
+    setIsLoading(true);
+    setApiResponse('');
+    try {
+      const response = await apiRequest(endpoint, {
+        method,
+        body: body ? JSON.stringify(body) : undefined,
+        headers: body ? { 'Content-Type': 'application/json' } : undefined
+      });
+      setApiResponse(JSON.stringify(response, null, 2));
+      toast({ title: "API call successful", variant: "default" });
+    } catch (error: any) {
+      const errorMessage = error.message || 'Unknown error';
+      setApiResponse(`Error: ${errorMessage}`);
+      toast({ title: "API call failed", description: errorMessage, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // PostgreSQL Form
   const postgresqlForm = useForm({
@@ -190,7 +213,7 @@ export default function Settings() {
     return integration?.isActive ? 'Connected' : 'Not Connected';
   };
 
-  if (isLoading || dbLoading) {
+  if (integrationsLoading || dbLoading) {
     return (
       <div className="p-6 max-w-6xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
@@ -718,56 +741,84 @@ export default function Settings() {
               </CardContent>
             </Card>
 
-            {/* Sync & Data Section */}
+            {/* QuickBooks Auth & Management Section */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <RefreshCw className="w-5 h-5 text-purple-600" />
-                  Sync & Data Management
+                  <SiQuickbooks className="w-5 h-5 text-blue-600" />
+                  QuickBooks Authentication & Sync
                 </CardTitle>
-                <CardDescription>Manual sync triggers and data management</CardDescription>
+                <CardDescription>Manage QuickBooks connection and sync operations</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => window.open('/api/sync/status', '_blank')}
-                >
-                  <Activity className="w-4 h-4 mr-2" />
-                  Sync Status
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => window.open('/api/sync/recommendations', '_blank')}
-                >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Sync Recommendations
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => {
-                    if (confirm('Trigger QuickBooks sync now?')) {
-                      window.open('/api/quickbooks/trigger-sync', '_blank');
-                    }
-                  }}
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Trigger QB Sync
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => window.open('/api/integrations', '_blank')}
-                >
-                  <Link2 className="w-4 h-4 mr-2" />
-                  All Integrations
-                </Button>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div>
+                    <p className="font-medium">Connection Status</p>
+                    <p className="text-sm text-muted-foreground">
+                      {getIntegrationStatus('quickbooks')}
+                    </p>
+                  </div>
+                  <Badge variant={getIntegrationStatus('quickbooks') === 'Connected' ? 'default' : 'secondary'}>
+                    {getIntegrationStatus('quickbooks')}
+                  </Badge>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const baseUrl = `${window.location.protocol}//${window.location.host}`;
+                      window.open(`${baseUrl}/quickbooks/connect`, '_blank');
+                    }}
+                  >
+                    <SiQuickbooks className="w-4 h-4 mr-2" />
+                    {getIntegrationStatus('quickbooks') === 'Connected' ? 'Re-authorize' : 'Connect'}
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => makeApiCall('/api/sync/status')}
+                    disabled={isLoading}
+                  >
+                    <Activity className="w-4 h-4 mr-2" />
+                    Check Status
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => makeApiCall('/api/integrations/quickbooks/sync', 'POST')}
+                    disabled={isLoading}
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Trigger Sync
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => makeApiCall('/api/integrations')}
+                    disabled={isLoading}
+                  >
+                    <Link2 className="w-4 h-4 mr-2" />
+                    All Integrations
+                  </Button>
+                </div>
+                
+                {getIntegrationStatus('quickbooks') === 'Connected' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => makeApiCall('/api/integrations/quickbooks/initial-sync', 'POST')}
+                    disabled={isLoading}
+                  >
+                    <Database className="w-4 h-4 mr-2" />
+                    Pull Initial Data
+                  </Button>
+                )}
               </CardContent>
             </Card>
 
@@ -780,39 +831,39 @@ export default function Settings() {
                 </CardTitle>
                 <CardDescription>Access raw data endpoints for debugging</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="grid grid-cols-2 gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full justify-start"
-                  onClick={() => window.open('/api/customers', '_blank')}
+                  onClick={() => makeApiCall('/api/customers')}
+                  disabled={isLoading}
                 >
                   <Database className="w-4 h-4 mr-2" />
-                  Customers Data
+                  Customers
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full justify-start"
-                  onClick={() => window.open('/api/products', '_blank')}
-                >
-                  <Database className="w-4 h-4 mr-2" />
-                  Products Data
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => window.open('/api/invoices', '_blank')}
+                  onClick={() => makeApiCall('/api/products')}
+                  disabled={isLoading}
                 >
                   <FileSpreadsheet className="w-4 h-4 mr-2" />
-                  Invoices Data
+                  Products
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full justify-start"
-                  onClick={() => window.open('/api/activity', '_blank')}
+                  onClick={() => makeApiCall('/api/invoices')}
+                  disabled={isLoading}
+                >
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Invoices
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => makeApiCall('/api/activity')}
+                  disabled={isLoading}
                 >
                   <Activity className="w-4 h-4 mr-2" />
                   Activity Logs
@@ -820,11 +871,20 @@ export default function Settings() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full justify-start"
-                  onClick={() => window.open('/api/clock/status', '_blank')}
+                  onClick={() => makeApiCall('/api/clock/status')}
+                  disabled={isLoading}
                 >
                   <CheckCircle className="w-4 h-4 mr-2" />
                   Clock Status
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => makeApiCall('/api/time-entries')}
+                  disabled={isLoading}
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Time Entries
                 </Button>
               </CardContent>
             </Card>
@@ -890,6 +950,38 @@ export default function Settings() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* API Response Display */}
+      {apiResponse && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Terminal className="w-5 h-5" />
+              API Response
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setApiResponse('')}
+                className="ml-auto"
+              >
+                Clear
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="bg-muted p-4 rounded-md overflow-auto max-h-96 text-sm">
+              {apiResponse}
+            </pre>
+          </CardContent>
+        </Card>
+      )}
+
+      {isLoading && (
+        <div className="fixed bottom-4 right-4 bg-primary text-primary-foreground p-3 rounded-md flex items-center gap-2">
+          <RefreshCw className="w-4 h-4 animate-spin" />
+          Making API call...
+        </div>
+      )}
     </div>
   );
 }
