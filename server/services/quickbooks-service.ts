@@ -422,20 +422,11 @@ export class QuickBooksService {
       let created = 0, updated = 0, skipped = 0;
 
       for (const qbCustomer of customers) {
-        // Debug logging for customer data
-        console.log(`📝 Processing QB Customer ID ${qbCustomer.Id}:`, {
-          name: qbCustomer.Name,
-          companyName: qbCustomer.CompanyName,
-          active: qbCustomer.Active
-        });
-        
         // Check if customer already exists by QuickBooks ID
         const existingCustomer = await storage.getCustomerByQuickbooksId(qbCustomer.Id);
         
         // Handle cases where QuickBooks customer has no name
         const customerName = qbCustomer.Name || qbCustomer.CompanyName || `Customer ${qbCustomer.Id}` || 'Unnamed Customer';
-        
-        console.log(`📝 Resolved customer name: "${customerName}"`);
         
         const customerData = {
           userId,
@@ -575,9 +566,7 @@ export class QuickBooksService {
   private async processInvoice(qbInvoice: any, userId: string): Promise<void> {
     try {
       // Check if invoice already exists by QuickBooks ID
-      console.log(`🔍 Checking if invoice ${qbInvoice.Id} already exists...`);
       const existingInvoice = await storage.getInvoiceByQuickbooksId(qbInvoice.Id);
-      console.log(`🔍 Invoice ${qbInvoice.Id} exists:`, !!existingInvoice);
       
       // Map QuickBooks customer ID to our internal database customer ID
       let customerId: string | null = null;
