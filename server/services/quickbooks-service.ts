@@ -56,10 +56,13 @@ export class QuickBooksService {
     this.webhookVerifierToken = process.env.QBO_WEBHOOK_VERIFIER!;
     // Use environment variable to determine sandbox vs production
     this.environment = (process.env.QBO_ENV as 'production' | 'sandbox') || 'production';
-    // Use appropriate API URL based on environment
-    this.baseUrl = this.environment === 'production' 
-      ? 'https://quickbooks.api.intuit.com'
-      : 'https://sandbox-quickbooks.api.intuit.com';
+    
+    // Use QBO_BASE_URL if provided, otherwise use default based on environment
+    this.baseUrl = process.env.QBO_BASE_URL || (
+      this.environment === 'production' 
+        ? 'https://quickbooks.api.intuit.com/v3/company'
+        : 'https://sandbox-quickbooks.api.intuit.com/v3/company'
+    );
     
     // Always use production redirect URI to match QuickBooks app configuration
     const redirectUri = process.env.QBO_REDIRECT_URI || 'https://www.wemakemarin.com/quickbooks/callback';
@@ -138,7 +141,7 @@ export class QuickBooksService {
   // Get company info to test connection
   async getCompanyInfo(accessToken: string, realmId: string): Promise<any> {
     try {
-      const url = `${this.baseUrl}/v3/company/${realmId}/companyinfo/${realmId}`;
+      const url = `${this.baseUrl}/${realmId}/companyinfo/${realmId}`;
       const response = await axios.get(url, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -273,7 +276,7 @@ export class QuickBooksService {
       throw new Error('QuickBooks realm ID not found');
     }
 
-    const url = `${this.baseUrl}/v3/company/${realmId}/${endpoint}`;
+    const url = `${this.baseUrl}/${realmId}/${endpoint}`;
     
     try {
       const response = await axios({
@@ -344,7 +347,7 @@ export class QuickBooksService {
     try {
       // Test token validity by making a simple API call
       const testResponse = await axios.get(
-        `${this.baseUrl}/v3/company/${integration.realmId}/companyinfo/${integration.realmId}`,
+        `${this.baseUrl}/${integration.realmId}/companyinfo/${integration.realmId}`,
         {
           headers: {
             'Authorization': `Bearer ${integration.accessToken}`,
