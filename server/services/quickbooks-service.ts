@@ -344,7 +344,7 @@ export class QuickBooksService {
     try {
       // Test token validity by making a simple API call
       const testResponse = await axios.get(
-        `${this.baseUrl}/v3/companyinfo/${integration.realmId}/companyinfo/${integration.realmId}`,
+        `${this.baseUrl}/v3/company/${integration.realmId}/companyinfo/${integration.realmId}`,
         {
           headers: {
             'Authorization': `Bearer ${integration.accessToken}`,
