@@ -933,12 +933,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // QuickBooks callback route
-
-  // QuickBooks callback route - SINGLE TOKEN EXCHANGE
   app.get('/quickbooks/callback', async (req: any, res) => {
     try {
       console.log('🔄 QuickBooks OAuth callback received:', req.query);
-      const { code, realmId, error, state } = req.query;
+      const { code, realmId, error } = req.query;
       
       // Handle OAuth error responses from QuickBooks
       if (error) {
@@ -948,50 +946,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!code || !realmId) {
         console.error('Missing required parameters:', { code: !!code, realmId: !!realmId });
-        return res.redirect('/settings?qb_error=' + encodeURIComponent('Missing OAuth parameters'));
+        console.error('Full query params:', req.query);
+        return res.redirect('/settings?qb_error=missing_params');
       }
 
-      console.log('🎯 Processing QuickBooks OAuth callback - SINGLE EXCHANGE');
+      // Default OAuth flow using QuickBooks service
+      console.log('🎯 Processing QuickBooks OAuth callback...');
       console.log('Code length:', code.toString().length);
       console.log('Realm ID:', realmId);
-      console.log('State:', state);
+      console.log('State:', req.query.state);
       
-      // Always use production redirect URI for token exchange
-      const redirectUri = process.env.QBO_REDIRECT_URI || 'https://www.wemakemarin.com/quickbooks/callback';
-      console.log('🔧 Using redirect URI:', redirectUri);
-      
-      // SINGLE token exchange - prevents "code invalid" errors
-      const tokens = await quickbooksService.exchangeCodeForTokens(String(code), redirectUri, String(realmId));
-      console.log('✅ Token exchange successful!');
-      
-      // Get user ID (use temp for development)
-      const userId = req.user?.claims?.sub || 'dev_user_123';
-      
-      // Store integration in database
       try {
-        const existingIntegration = await storage.getIntegration(userId, 'quickbooks');
+        // Always use production redirect URI for token exchange to match QuickBooks app configuration
+        const redirectUri = process.env.QBO_REDIRECT_URI || 'https://www.wemakemarin.com/quickbooks/callback';
         
-        if (existingIntegration) {
-          await storage.updateIntegration(existingIntegration.id, {
-            accessToken: tokens.access_token,
-            refreshToken: tokens.refresh_token,
-            realmId: String(realmId),
-            isActive: true,
-            lastSyncAt: new Date()
-          });
-          console.log('✅ Updated existing QuickBooks integration');
-        } else {
-          await storage.upsertIntegration({
-            userId: userId,
-            provider: 'quickbooks',
-            accessToken: tokens.access_token,
-            refreshToken: tokens.refresh_token,
-            realmId: String(realmId),
-            isActive: true,
-            lastSyncAt: new Date()
-          });
-          console.log('✅ Created new QuickBooks integration');
-        }
+        console.log('Using redirect URI for token exchange:', redirectUri);
+        
+        // Use the QuickBooks service to exchange code for tokens
+        const tokens = await quickbooksService.exchangeCodeForTokens(String(code), redirectUri, String(realmId));
+        
+        console.log('🎉 Token exchange successful via QuickBooks service!');
+        
+        // Store the tokens in the database immediately
+        const userId = req.user?.claims?.sub || 'dev_user_123';
+        
+        // Calculate expiration date
+        const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
+        
+        // Use upsertIntegration to create or update the integration
+        const integrationData = {
+          userId: userId,
+          provider: 'quickbooks',
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token || '',
+          expiresAt,
+          realmId: String(realmId),
+          isActive: true,
+          lastSyncAt: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        
+        await storage.upsertIntegration(integrationData);
+        console.log('✅ QuickBooks integration stored successfully');
         
         // Log the connection activity
         await storage.createActivityLog({
@@ -1002,25 +999,209 @@ export async function registerRoutes(app: Express): Promise<Server> {
           createdAt: new Date()
         });
         
-      } catch (dbError) {
-        console.error('❌ Database error storing integration:', dbError);
-        return res.redirect('/settings?qb_error=' + encodeURIComponent('Database error: ' + dbError));
+        return res.redirect('/settings?qb_success=1');
+        
+      } catch (error: any) {
+        console.error('❌ Token exchange failed:', {
+          message: error.message,
+          stack: error.stack,
+          status: error.status,
+          statusText: error.statusText,
+          response: error.response?.data || error.data
+        });
+        const errorMsg = encodeURIComponent(`Token exchange failed: ${error.message}`);
+        return res.redirect(`/settings?qb_error=${errorMsg}`);
       }
       
-      // Run initial sync in the background (don't await to avoid timeout)
-      quickbooksService.fullSync(userId).catch(syncError => {
-        console.error('Background sync error:', syncError);
-      });
+      // Token exchange completed above - callback processing complete
       
-      console.log('🎉 QuickBooks OAuth flow completed successfully');
-      res.redirect('/settings?qb_success=1');
-      
-    } catch (error: any) {
-      console.error('❌ QuickBooks callback error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown OAuth error';
-      res.redirect('/settings?qb_error=' + encodeURIComponent(errorMessage));
+    } catch (generalError: any) {
+      console.error('❌ QuickBooks callback general error:', generalError);
+      return res.redirect('/settings?qb_error=' + encodeURIComponent('OAuth callback failed: ' + generalError.message));
     }
   });
+          
+          // OLD CODE - Return success page instead of JSON
+          const successHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>QuickBooks Connected Successfully!</title>
+                <style>
+                    body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; background: #f5f5f5; }
+                    .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 20px; border-radius: 8px; margin: 20px 0; }
+                    .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; padding: 15px; border-radius: 8px; margin: 15px 0; }
+                    .button { background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px 0; }
+                </style>
+            </head>
+            <body>
+                <h1>🎉 QuickBooks Connected Successfully!</h1>
+                <div class="success">
+                    <strong>Fresh tokens obtained and stored automatically!</strong><br>
+                    Company ID: ${realmId}<br>
+                    Status: Connected to production QuickBooks
+                </div>
+                <div class="info">
+                    <strong>What's Next:</strong>
+                    <ul>
+                        <li>QuickBooks sync is now active and will run every 60 minutes</li>
+                        <li>You can manually trigger a sync from your dashboard</li>
+                        <li>All customer, product, and invoice data will sync automatically</li>
+                    </ul>
+                </div>
+                <a href="/products" class="button">Go to Dashboard</a>
+                <a href="/api/quickbooks/trigger-sync" class="button">Test Sync Now</a>
+            </body>
+            </html>
+          `;
+          
+          return res.send(successHtml);
+          
+        } catch (authError: any) {
+          console.error('❌ Token exchange failed:', authError);
+          console.error('Error details:', {
+            message: authError.message,
+            status: authError.status,
+            statusText: authError.statusText,
+            data: authError.data
+          });
+          
+          const errorHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>QuickBooks Connection Error</title>
+                <style>
+                    body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; background: #f5f5f5; }
+                    .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 20px; border-radius: 8px; margin: 20px 0; }
+                    .button { background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px 0; }
+                </style>
+            </head>
+            <body>
+                <h1>❌ QuickBooks Connection Failed</h1>
+                <div class="error">
+                    <strong>Error:</strong> ${authError.message}<br>
+                    <strong>Status:</strong> ${authError.status || 'Unknown'}<br>
+                    <strong>Details:</strong> Authorization code exchange failed
+                </div>
+                <p>This usually happens when:</p>
+                <ul>
+                    <li>The authorization code has expired (they expire quickly)</li>
+                    <li>There's a mismatch in OAuth settings</li>
+                    <li>The QuickBooks session has timed out</li>
+                </ul>
+                <a href="/quickbooks/connect" class="button">Try Again</a>
+            </body>
+            </html>
+          `;
+          
+          return res.send(errorHtml);
+        }
+      }
+
+      // Check if we're in development mode with redirect URI mismatch
+      const isReplitEnvironment = req.get('host')?.includes('replit.dev');
+      
+      if (isReplitEnvironment && process.env.QBO_REDIRECT_URI?.includes('wemakemarin.com')) {
+        console.warn('⚠️ QuickBooks OAuth redirect URI mismatch detected');
+        console.warn('   Expected: https://www.wemakemarin.com/quickbooks/callback');
+        console.warn(`   Current: https://${req.get('host')}/quickbooks/callback`);
+        console.warn('   Creating simulated QuickBooks connection for development...');
+        
+        // Create simulated QuickBooks integration for development
+        const userId = 'dev_user_123';
+        
+        // Check for existing integration first
+        const existingIntegration = await storage.getIntegration(userId, 'quickbooks');
+        if (existingIntegration) {
+          await storage.updateIntegration(existingIntegration.id, {
+            isActive: true,
+            lastSyncAt: new Date()
+          });
+        } else {
+          await storage.createIntegration({
+            userId,
+            provider: 'quickbooks',
+            accessToken: 'dev_simulated_token_' + Date.now(),
+            refreshToken: 'dev_simulated_refresh_' + Date.now(),
+            realmId: realmId as string,
+            isActive: true,
+            lastSyncAt: new Date()
+          });
+        }
+
+        console.log('✅ Simulated QuickBooks integration created for development');
+        return res.json({
+          success: true,
+          message: 'Development QuickBooks connection simulated successfully!',
+          redirect: '/products?qb_success=simulated_connection',
+          integration: {
+            provider: 'quickbooks',
+            realmId: realmId,
+            status: 'connected (simulated for development)'
+          }
+        });
+      }
+
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+      
+      // Production OAuth flow
+      console.log('🔄 Processing QuickBooks OAuth callback...');
+      
+      // Use appropriate redirect URI based on environment  
+      const redirectUri = process.env.QBO_REDIRECT_URI || 
+        'https://www.wemakemarin.com/quickbooks/callback';
+      console.log('🔧 Using redirect URI:', redirectUri);
+      
+      const tokens = await quickbooksService.exchangeCodeForTokens(
+        code as string, 
+        redirectUri, 
+        realmId as string
+      );
+
+      console.log('✅ Tokens exchanged successfully');
+
+      // Store integration
+      const existingIntegration = await storage.getIntegration(userId, 'quickbooks');
+      if (existingIntegration) {
+        await storage.updateIntegration(existingIntegration.id, {
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          realmId: tokens.realmId,
+          isActive: true,
+          lastSyncAt: new Date()
+        });
+      } else {
+        await storage.createIntegration({
+          userId,
+          provider: 'quickbooks',
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          realmId: tokens.realmId,
+          isActive: true,
+          lastSyncAt: new Date()
+        });
+      }
+
+      console.log('✅ Integration stored successfully');
+
+      // Start initial sync
+      await quickbooksService.fullSync(userId);
+
+      console.log('✅ Initial sync completed');
+      res.redirect('/products?qb_success=connected');
+      
+    } catch (error) {
+      console.error('QuickBooks callback error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.redirect('/products?qb_error=' + encodeURIComponent(errorMessage));
+    }
+  });
+
+
 
   // Development: Check QuickBooks connection status
   app.get('/api/integrations/quickbooks/debug', isAuthenticated, async (req, res) => {
