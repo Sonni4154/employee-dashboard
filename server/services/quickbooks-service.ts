@@ -185,9 +185,18 @@ export class QuickBooksService {
         clientIdLength: this.clientId.length
       });
 
-      // Use the main OAuth client to exchange the code
-      // This ensures consistency with the authorization flow
-      const authResponse = await this.oauthClient.createToken(code);
+      // Create a fresh OAuth client specifically for token exchange
+      // to ensure the redirect URI matches exactly what was used in authorization
+      const productionRedirectUri = 'https://www.wemakemarin.com/quickbooks/callback';
+      const tokenExchangeClient = new OAuthClient({
+        clientId: this.clientId,
+        clientSecret: this.clientSecret,
+        environment: this.environment,
+        redirectUri: productionRedirectUri  // Always use production URI
+      });
+
+      // Use the fresh client to exchange the code
+      const authResponse = await tokenExchangeClient.createToken(code);
       
       console.log('✅ OAuth Response received:', {
         hasToken: !!authResponse.token,
