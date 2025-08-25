@@ -1,0 +1,90 @@
+2025-08-24 17:16:25.23
+86da88ab
+User
+file:///home/runner/workspace/dist/index.js:3957
+2025-08-24 17:16:25.23
+86da88ab
+User
+if (!req.isAuthenticated() || !user.expires_at) {
+2025-08-24 17:16:25.23
+86da88ab
+User
+^
+2025-08-24 17:16:25.23
+86da88ab
+User
+2025-08-24 17:16:25.23
+86da88ab
+User
+TypeError: req.isAuthenticated is not a function
+2025-08-24 17:16:25.23
+86da88ab
+User
+at isAuthenticated (file:///home/runner/workspace/dist/index.js:3957:12)
+2025-08-24 17:16:25.23
+86da88ab
+User
+at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+2025-08-24 17:16:25.23
+86da88ab
+User
+at next (/home/runner/workspace/node_modules/express/lib/router/route.js:149:13)
+2025-08-24 17:16:25.23
+86da88ab
+User
+at Route.dispatch (/home/runner/workspace/node_modules/express/lib/router/route.js:119:3)
+2025-08-24 17:16:25.23
+86da88ab
+User
+at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+2025-08-24 17:16:25.23
+86da88ab
+User
+at /home/runner/workspace/node_modules/express/lib/router/index.js:284:15
+2025-08-24 17:16:25.23
+86da88ab
+User
+at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+2025-08-24 17:16:25.23
+86da88ab
+User
+at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+2025-08-24 17:16:25.23
+86da88ab
+User
+at file:///home/runner/workspace/dist/index.js:7081:3
+2025-08-24 17:16:25.23
+86da88ab
+User
+at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+2025-08-24 17:16:25.23
+86da88ab
+User
+2025-08-24 17:16:25.23
+86da88ab
+User
+Node.js v20.19.3
+2025-08-24 17:16:25.26
+86da88ab
+User
+npm notice
+2025-08-24 17:16:25.26
+86da88ab
+User
+npm notice New major version of npm available! 10.8.2 -> 11.5.2
+2025-08-24 17:16:25.26
+86da88ab
+User
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.5.2
+2025-08-24 17:16:25.26
+86da88ab
+User
+npm notice To update run: npm install -g npm@11.5.2
+2025-08-24 17:16:25.26
+86da88ab
+User
+npm notice
+2025-08-24 17:16:25.27
+86da88ab
+System
+command finished with error [sh -c npm run start]: exit status 1
