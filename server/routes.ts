@@ -3141,12 +3141,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // CRITICAL: Protect API routes from static serving catch-all in production
+  // CRITICAL: Protect API and QuickBooks routes from static serving catch-all in production
   // This middleware ensures API routes always return JSON, never HTML
   app.use('/api/*', (req, res, next) => {
     // If we reach here, the API route wasn't found
     res.status(404).json({ 
       error: 'API endpoint not found',
+      path: req.originalUrl,
+      method: req.method,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // CRITICAL: Protect QuickBooks OAuth callback from static serving catch-all
+  // This ensures /quickbooks/callback reaches the OAuth handler, not HTML
+  app.use('/quickbooks/*', (req, res, next) => {
+    // If we reach here, the QuickBooks route wasn't found
+    res.status(404).json({ 
+      error: 'QuickBooks endpoint not found',
       path: req.originalUrl,
       method: req.method,
       timestamp: new Date().toISOString()
