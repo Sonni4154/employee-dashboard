@@ -31,7 +31,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Temporarily return working user data to prevent 401 loop
       const tempUser = {
-        id: 'temp_user_001',
+        id: 'dev_user_123',
         firstName: 'Spencer',
         lastName: 'Reiser',
         email: 'spencer@marinpestcontrol.com',
@@ -51,7 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Database error fetching user:", error);
         // Return basic user info from auth if database fails
         return res.json({
-          id: 'temp_user_001', // userId temporarily replaced
+          id: 'dev_user_123', // userId temporarily replaced
           email: req.user.claims.email || 'unknown@example.com',
           firstName: req.user.claims.given_name || 'User',
           lastName: req.user.claims.family_name || '',
@@ -66,7 +66,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create user if doesn't exist
         try {
           user = await storage.upsertUser({
-            id: 'temp_user_001', // userId temporarily replaced
+            id: 'dev_user_123', // userId temporarily replaced
             email: getUserEmail(req),
             firstName: getUserFirstName(req),
             lastName: getUserLastName(req),
@@ -77,7 +77,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error("Error creating user:", createError);
           // Return basic user info if creation fails
           return res.json({
-            id: 'temp_user_001', // userId temporarily replaced
+            id: 'dev_user_123', // userId temporarily replaced
             email: getUserEmail(req),
             firstName: getUserFirstName(req),
             lastName: getUserLastName(req),
@@ -1640,7 +1640,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/database-connections", async (req, res) => {
     try {
-      const userId = 'temp_user_001'; // req.user!.claims.sub temporarily replaced
+      const userId = 'dev_user_123'; // req.user!.claims.sub temporarily replaced
       const connectionData = { ...req.body, userId };
       
       const connection = await storage.createDatabaseConnection(connectionData);
