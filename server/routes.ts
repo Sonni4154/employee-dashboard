@@ -921,7 +921,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // QuickBooks integration debug endpoint
   app.get('/api/integrations/quickbooks/debug', async (req: any, res) => {
     try {
-      const userId = getUserId(req) || 'dev_user_123';
+      // CRITICAL: Always use dev_user_123 for consistency between dev and production
+      const userId = 'dev_user_123';
       const integration = await storage.getIntegration(userId, 'quickbooks');
       
       // Get the actual baseUrl from the QuickBooks service instance
@@ -963,7 +964,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // QuickBooks test connection endpoint
   app.get('/api/quickbooks/test', async (req: any, res) => {
     try {
-      const userId = getUserId(req) || 'dev_user_123';
+      // CRITICAL: Always use dev_user_123 for consistency between dev and production
+      const userId = 'dev_user_123';
       // Test connection by getting company info
       const integration = await storage.getIntegration(userId, 'quickbooks');
       if (!integration?.accessToken || !integration?.realmId) {
@@ -990,7 +992,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // QuickBooks debug info endpoint
   app.get('/api/quickbooks/debug', async (req: any, res) => {
     try {
-      const userId = getUserId(req) || 'dev_user_123';
+      // CRITICAL: Always use dev_user_123 for consistency between dev and production
+      const userId = 'dev_user_123';
       const integration = await storage.getIntegration(userId, 'quickbooks');
       
       res.json({
@@ -1026,7 +1029,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // QuickBooks connection status endpoint
   app.get('/api/quickbooks/status', async (req: any, res) => {
     try {
-      const userId = getUserId(req) || 'dev_user_123';
+      // CRITICAL: Always use dev_user_123 for consistency between dev and production
+      const userId = 'dev_user_123';
       const integration = await storage.getIntegration(userId, 'quickbooks');
       
       if (!integration) {
@@ -1059,7 +1063,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // QuickBooks refresh token endpoint
   app.post('/api/quickbooks/refresh', async (req: any, res) => {
     try {
-      const userId = getUserId(req) || 'dev_user_123';
+      // CRITICAL: Always use dev_user_123 for consistency between dev and production
+      const userId = 'dev_user_123';
       const integration = await storage.getIntegration(userId, 'quickbooks');
       
       if (!integration?.refreshToken) {
@@ -1567,6 +1572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // QuickBooks connection status endpoint
   app.get('/api/integrations/quickbooks/status', async (req, res) => {
     try {
+      // CRITICAL: Always use dev_user_123 for consistency between dev and production
       const userId = 'dev_user_123';
       const integration = await storage.getIntegration(userId, 'quickbooks');
       
@@ -3081,7 +3087,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Debug endpoint to check current integrations
   app.get('/api/debug/integrations', async (req, res) => {
     try {
-      const userId = getUserId(req) || 'dev_user_123';
+      // CRITICAL: Always use dev_user_123 for consistency between dev and production
+      const userId = 'dev_user_123';
       const integration = await storage.getIntegration(userId, 'quickbooks');
       
       const debugData = integration ? {
