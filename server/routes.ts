@@ -3110,6 +3110,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug environment endpoint
+  app.get('/api/debug/environment', async (req: any, res) => {
+    try {
+      res.json({
+        status: 'success',
+        environment: {
+          nodeEnv: process.env.NODE_ENV || 'development',
+          port: process.env.PORT || '5000',
+          databaseUrl: process.env.DATABASE_URL ? 'configured' : 'missing',
+          sessionSecret: process.env.SESSION_SECRET ? 'configured' : 'missing',
+          qboClientId: process.env.QBO_CLIENT_ID ? 'configured' : 'missing',
+          qboClientSecret: process.env.QBO_CLIENT_SECRET ? 'configured' : 'missing',
+          qboCompanyId: process.env.QBO_COMPANY_ID || 'not set',
+          qboRedirectUri: process.env.QBO_REDIRECT_URI || 'not set',
+          qboEnvironment: process.env.QBO_ENV || 'not set',
+          replitDomains: process.env.REPLIT_DOMAINS ? 'configured' : 'missing',
+          enableReplitOidc: process.env.ENABLE_REPLIT_OIDC || 'not set'
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('Debug environment failed:', error);
+      res.status(500).json({ 
+        status: 'error',
+        message: 'Failed to get environment debug info',
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
