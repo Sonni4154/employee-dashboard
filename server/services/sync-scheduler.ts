@@ -77,8 +77,8 @@ export class SyncScheduler {
     this.scheduleConfigs.set('quickbooks', {
       provider: 'quickbooks',
       enabled: true, // Enable QuickBooks sync by default
-      interval: 60, // 1 hour
-      businessHoursOnly: true,
+      interval: 50, // 50 minutes
+      businessHoursOnly: false,
       retryAttempts: 3,
       priority: 'high'
     });
@@ -475,11 +475,11 @@ export class SyncScheduler {
     // Check tokens immediately on startup
     setTimeout(checkAndRefreshTokens, 5000); // 5 seconds after startup
     
-    // Then check every 30 minutes
-    const tokenRefreshInterval = setInterval(checkAndRefreshTokens, 30 * 60 * 1000);
+    // Then check every 50 minutes
+    const tokenRefreshInterval = setInterval(checkAndRefreshTokens, 50 * 60 * 1000);
     this.activeIntervals.set('token_refresh', tokenRefreshInterval);
     
-    console.log('🔐 Token refresh monitoring started - checking every 30 minutes');
+    console.log('🔐 Token refresh monitoring started - checking every 50 minutes');
   }
 
   destroy(): void {
