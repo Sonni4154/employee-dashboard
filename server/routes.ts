@@ -3141,6 +3141,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // CRITICAL: Protect API routes from static serving catch-all in production
+  // This middleware ensures API routes always return JSON, never HTML
+  app.use('/api/*', (req, res, next) => {
+    // If we reach here, the API route wasn't found
+    res.status(404).json({ 
+      error: 'API endpoint not found',
+      path: req.originalUrl,
+      method: req.method,
+      timestamp: new Date().toISOString()
+    });
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
